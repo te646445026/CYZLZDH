@@ -1,0 +1,15 @@
+2025-08-10 12:09:56.8065 Info Registered target NLog.Targets.FileTarget(Name=fileTarget)
+2025-08-10 12:09:56.8401 Info Registered target NLog.Targets.ConsoleTarget(Name=consoleTarget)
+2025-08-10 12:09:56.8401 Info NLog, Version=5.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c. File version: 5.2.8.2366. Product version: 5.2.8+f586f1341c46fa38aaaff4c641e7f0fa7e813943. GlobalAssemblyCache: False
+2025-08-10 12:09:56.8782 Info Validating config: TargetNames=fileTarget, consoleTarget, ConfigItems=29, FilePath=E:\C#\table_OCRV41ForCsharp\table_OCRV41ForCsharp_net\bin\Debug\net8.0-windows\nlog.config
+2025-08-10 12:09:56.8921 Info Configuration initialized.
+2025-08-10 12:33:09.6873 Info Registered target NLog.Targets.FileTarget(Name=fileTarget)
+2025-08-10 12:33:09.7129 Info Registered target NLog.Targets.ConsoleTarget(Name=consoleTarget)
+2025-08-10 12:33:09.7254 Info NLog, Version=5.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c. File version: 5.2.8.2366. Product version: 5.2.8+f586f1341c46fa38aaaff4c641e7f0fa7e813943. GlobalAssemblyCache: False
+2025-08-10 12:33:09.7451 Info Validating config: TargetNames=fileTarget, consoleTarget, ConfigItems=29, FilePath=E:\C#\table_OCRV41ForCsharp\table_OCRV41ForCsharp_net\bin\Debug\net8.0-windows\nlog.config
+2025-08-10 12:33:09.7562 Info Configuration initialized.
+2025-08-11 08:57:36.8041 Info Registered target NLog.Targets.FileTarget(Name=fileTarget)
+2025-08-11 08:57:36.8400 Info Registered target NLog.Targets.ConsoleTarget(Name=consoleTarget)
+2025-08-11 08:57:36.8400 Info NLog, Version=5.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c. File version: 5.2.8.2366. Product version: 5.2.8+f586f1341c46fa38aaaff4c641e7f0fa7e813943. GlobalAssemblyCache: False
+2025-08-11 08:57:36.8765 Info Validating config: TargetNames=fileTarget, consoleTarget, ConfigItems=29, FilePath=E:\C#\table_OCRV41ForCsharp\table_OCRV41ForCsharp_net\bin\Debug\net8.0-windows\nlog.config
+2025-08-11 08:57:36.8880 Info Configuration initialized.

@@ -1,0 +1,119 @@
+using Microsoft.Data.Sqlite;
+
+const string dbPath = "jwt.db";
+
+using var connection = new SqliteConnection($"Data Source={dbPath}");
+connection.Open();
+
+Console.WriteLine("=== 数据库表列表 ===");
+using var tablesCmd = connection.CreateCommand();
+tablesCmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;";
+using var tablesReader = tablesCmd.ExecuteReader();
+while (tablesReader.Read())
+{
+    Console.WriteLine($"表: {tablesReader.GetString(0)}");
+}
+
+Console.WriteLine("\n=== 各表记录数量 ===");
+var tableNames = new List<string>();
+using var countCmd1 = connection.CreateCommand();
+countCmd1.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';";
+using var countReader1 = countCmd1.ExecuteReader();
+while (countReader1.Read())
+{
+    tableNames.Add(countReader1.GetString(0));
+}
+
+foreach (var tableName in tableNames)
+{
+    using var countCmd = connection.CreateCommand();
+    countCmd.CommandText = $"SELECT COUNT(*) FROM \"{tableName}\"";
+    var count = countCmd.ExecuteScalar();
+    Console.WriteLine($"{tableName}: {count} 条记录");
+}
+
+Console.WriteLine("\n=== 检查是否有elevator或record相关表 ===");
+var relevantTables = tableNames.Where(t => t.ToLower().Contains("elevator") || t.ToLower().Contains("record") || t.ToLower().Contains("device") || t.ToLower().Contains("inspect")).ToList();
+if (relevantTables.Any())
+{
+    foreach (var tableName in relevantTables)
+    {
+        Console.WriteLine($"\n发现相关表: {tableName}");
+    }
+}
+else
+{
+    Console.WriteLine("未找到包含elevator/record/device/inspect的表");
+}
+
+Console.WriteLine("\n=== 查看主要业务表结构 ===");
+var mainTables = tableNames.Where(t => !t.ToLower().Contains("sqlite") && !t.ToLower().Contains("android") && !t.ToLower().Contains("metadata")).ToList();
+foreach (var tableName in mainTables.Take(3))
+{
+    Console.WriteLine($"\n--- 表: {tableName} ---");
+    using var schemaCmd = connection.CreateCommand();
+    schemaCmd.CommandText = $"PRAGMA table_info(\"{tableName}\")";
+    using var schemaReader = schemaCmd.ExecuteReader();
+    while (schemaReader.Read())
+    {
+        Console.WriteLine($"  {schemaReader.GetString(1)} ({schemaReader.GetString(2)})");
+    }
+}
+
+Console.WriteLine("\n=== 查看主要业务表数据 ===");
+foreach (var tableName in mainTables.Take(3))
+{
+    Console.WriteLine($"\n--- 表: {tableName} 前5条记录 ---");
+    using var dataCmd = connection.CreateCommand();
+    dataCmd.CommandText = $"SELECT * FROM \"{tableName}\" LIMIT 5";
+    using var dataReader = dataCmd.ExecuteReader();
+    var fieldCount = dataReader.FieldCount;
+    var columnNames = new List<string>();
+    for (int i = 0; i < fieldCount; i++)
+    {
+        columnNames.Add(dataReader.GetName(i));
+    }
+    Console.WriteLine($"列: {string.Join(" | ", columnNames)}");
+    
+    while (dataReader.Read())
+    {
+        var values = new List<string>();
+        for (int i = 0; i < fieldCount; i++)
+        {
+            var val = dataReader.IsDBNull(i) ? "NULL" : dataReader.GetString(i);
+            values.Add(val.Length > 50 ? val.Substring(0, 50) + "..." : val);
+        }
+        Console.WriteLine($"  {string.Join(" | ", values)}");
+    }
+}
+
+Console.WriteLine("\n=== 按创建时间排序查看最新记录 ===");
+var timeColumns = new List<string>();
+using var timeColCmd = connection.CreateCommand();
+timeColCmd.CommandText = @"
+    SELECT t.name as table_name, c.name as column_name 
+    FROM sqlite_master t 
+    JOIN PRAGMA table_info(t.name) c ON 1=1
+    WHERE c.name LIKE '%time%' OR c.name LIKE '%date%' OR c.name LIKE '%created%'
+";
+using var timeColReader = timeColCmd.ExecuteReader();
+while (timeColReader.Read())
+{
+    timeColumns.Add($"{timeColReader.GetString(0)}.{timeColReader.GetString(1)}");
+}
+
+if (timeColumns.Any())
+{
+    Console.WriteLine("发现时间相关字段:");
+    foreach (var tc in timeColumns.Distinct())
+    {
+        Console.WriteLine($"  {tc}");
+    }
+}
+else
+{
+    Console.WriteLine("未找到时间相关字段");
+}
+
+Console.WriteLine("\n按任意键退出...");
+Console.ReadKey();

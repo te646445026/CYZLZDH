@@ -1,0 +1,48 @@
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.suo
+
+# NuGet Packages
+*.nupkg
+packages/
+project.assets.json
+project.fragment.lock.json
+
+# Runtime data
+pdb
+*.pidb
+*.so
+*.dll
+*.dylib
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+key.json
+*.xlsx
+ocr_data.xlsx
+ocr_decoded.txt
+cells.txt
