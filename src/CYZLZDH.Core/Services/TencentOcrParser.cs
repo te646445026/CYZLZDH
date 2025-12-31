@@ -373,35 +373,176 @@ public class TencentOcrParser : IOcrParser
                 result.RatedLoad = "/";
             }
 
-            // 提取层站门数
+            // 提取层站门数 - 增强版多种识别方式
             try
             {
+                bool found = false;
+
+                // 方式1: 精确匹配"层站门数"标签
                 ObjsIndex("层站门数", objs, out indexj, out indexi, out isContain);
                 if (isContain)
                 {
                     string layerText = objs["Response"]["TableDetections"][indexj]["Cells"][indexi + 1]["Text"]
                         .ToString().Replace("\n", "").Replace("\r", "");
-                    
-                    // 提取所有数字并组合成"X层X站X门"格式
-                    var matches = Regex.Matches(layerText, @"(\d+)");
-                    if (matches.Count >= 3)
+                    result.LayerStationDoor = ParseLayerStationDoor(layerText, out var parsed1);
+                    if (parsed1) found = true;
+                }
+
+                // 方式2: 遍历所有单元格，查找包含"层站门"的行
+                if (!found)
+                {
+                    var tableDetections = objs["Response"]["TableDetections"];
+                    foreach (var table in tableDetections.Select((t, j) => new { Table = t, J = j }))
                     {
-                        result.LayerStationDoor = $"{matches[0].Value}层{matches[1].Value}站{matches[2].Value}门";
-                    }
-                    else if (matches.Count == 2)
-                    {
-                        result.LayerStationDoor = $"{matches[0].Value}层{matches[1].Value}站门";
-                    }
-                    else if (matches.Count == 1)
-                    {
-                        result.LayerStationDoor = $"{matches[0].Value}层站门";
-                    }
-                    else
-                    {
-                        result.LayerStationDoor = "/";
+                        foreach (var cell in table.Table["Cells"].Select((c, i) => new { Cell = c, I = i }))
+                        {
+                            string cellText = cell.Cell["Text"].ToString().Replace("\n", "").Replace("\r", "");
+                            
+                            // 检查是否包含层站门相关标签
+                            if (cellText.Contains("层站门数") || 
+                                cellText.Contains("层站门") || 
+                                (cellText.Contains("层") && cellText.Contains("站") && cellText.Contains("门")))
+                            {
+                                result.LayerStationDoor = ParseLayerStationDoor(cellText, out var parsed2);
+                                if (parsed2)
+                                {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            
+                            // 检查相邻单元格
+                            if (cell.I + 1 < table.Table["Cells"].Count())
+                            {
+                                string rightCell = table.Table["Cells"][cell.I + 1]["Text"].ToString()
+                                    .Replace("\n", "").Replace("\r", "");
+                                
+                                // 如果当前单元格是"层站门数"标签
+                                if (cellText.Trim() == "层站门数" || cellText.Trim() == "层站门")
+                                {
+                                    result.LayerStationDoor = ParseLayerStationDoor(rightCell, out var parsed3);
+                                    if (parsed3)
+                                    {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (found) break;
                     }
                 }
-                else
+
+                // 方式3: 查找"X层X站X门"格式（完整格式）
+                if (!found)
+                {
+                    var tableDetections = objs["Response"]["TableDetections"];
+                    foreach (var table in tableDetections.Select((t, j) => new { Table = t, J = j }))
+                    {
+                        foreach (var cell in table.Table["Cells"].Select((c, i) => new { Cell = c, I = i }))
+                        {
+                            string cellText = cell.Cell["Text"].ToString().Replace("\n", "").Replace("\r", "");
+                            
+                            // 匹配 "7层7站7门" 格式
+                            var match = Regex.Match(cellText, @"(\d+)\s*层\s*(\d+)\s*站\s*(\d+)\s*门");
+                            if (match.Success)
+                            {
+                                result.LayerStationDoor = $"{match.Groups[1].Value}层{match.Groups[2].Value}站{match.Groups[3].Value}门";
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (found) break;
+                    }
+                }
+
+                // 方式4: 查找"/"分隔格式（如"7/7/7"）
+                if (!found)
+                {
+                    var tableDetections = objs["Response"]["TableDetections"];
+                    foreach (var table in tableDetections.Select((t, j) => new { Table = t, J = j }))
+                    {
+                        foreach (var cell in table.Table["Cells"].Select((c, i) => new { Cell = c, I = i }))
+                        {
+                            string cellText = cell.Cell["Text"].ToString().Replace("\n", "").Replace("\r", "");
+                            
+                            // 匹配 "7/7/7" 格式
+                            var match = Regex.Match(cellText, @"^(\d+)/(\d+)/(\d+)$");
+                            if (match.Success)
+                            {
+                                result.LayerStationDoor = $"{match.Groups[1].Value}层{match.Groups[2].Value}站{match.Groups[3].Value}门";
+                                found = true;
+                                break;
+                            }
+                            
+                            // 匹配 "7/7/7门" 或 "7层/7站/7门" 格式
+                            match = Regex.Match(cellText, @"(\d+).*?(\d+).*?(\d+).*?门");
+                            if (match.Success)
+                            {
+                                result.LayerStationDoor = $"{match.Groups[1].Value}层{match.Groups[2].Value}站{match.Groups[3].Value}门";
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (found) break;
+                    }
+                }
+
+                // 方式5: 查找连续三个数字（可能OCR识别丢失了单位）
+                if (!found)
+                {
+                    var tableDetections = objs["Response"]["TableDetections"];
+                    foreach (var table in tableDetections.Select((t, j) => new { Table = t, J = j }))
+                    {
+                        foreach (var cell in table.Table["Cells"].Select((c, i) => new { Cell = c, I = i }))
+                        {
+                            string cellText = cell.Cell["Text"].ToString().Replace("\n", "").Replace("\r", "");
+                            
+                            // 查找连续三个数字，可能用空格、连字符或其他字符分隔
+                            var matches = Regex.Matches(cellText, @"(\d+)");
+                            if (matches.Count >= 3)
+                            {
+                                // 检查这些数字是否在合理范围内（1-100）
+                                int num1 = int.Parse(matches[0].Value);
+                                int num2 = int.Parse(matches[1].Value);
+                                int num3 = int.Parse(matches[2].Value);
+                                
+                                if (num1 <= 100 && num2 <= 100 && num3 <= 100)
+                                {
+                                    result.LayerStationDoor = $"{matches[0].Value}层{matches[1].Value}站{matches[2].Value}门";
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (found) break;
+                    }
+                }
+
+                // 方式6: 查找"X层X门"格式（省略站数，与层数相同）
+                if (!found)
+                {
+                    var tableDetections = objs["Response"]["TableDetections"];
+                    foreach (var table in tableDetections.Select((t, j) => new { Table = t, J = j }))
+                    {
+                        foreach (var cell in table.Table["Cells"].Select((c, i) => new { Cell = c, I = i }))
+                        {
+                            string cellText = cell.Cell["Text"].ToString().Replace("\n", "").Replace("\r", "");
+                            
+                            // 匹配 "7层7门" 格式
+                            var match = Regex.Match(cellText, @"(\d+)\s*层\s*(\d+)\s*门");
+                            if (match.Success)
+                            {
+                                result.LayerStationDoor = $"{match.Groups[1].Value}层{match.Groups[1].Value}站{match.Groups[2].Value}门";
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (found) break;
+                    }
+                }
+
+                if (!found)
                 {
                     result.LayerStationDoor = "/";
                 }
@@ -743,6 +884,68 @@ public class TencentOcrParser : IOcrParser
         }
 
         return result;
+    }
+
+    private static string ParseLayerStationDoor(string input, out bool success)
+    {
+        success = false;
+        if (string.IsNullOrWhiteSpace(input))
+            return "/";
+
+        string cleanedInput = input.Replace("\n", "").Replace("\r", "").Trim();
+
+        // 匹配 "X层X站X门" 格式（如 "7层7站7门"）
+        var match = Regex.Match(cleanedInput, @"(\d+)\s*层\s*(\d+)\s*站\s*(\d+)\s*门");
+        if (match.Success)
+        {
+            success = true;
+            return $"{match.Groups[1].Value}层{match.Groups[2].Value}站{match.Groups[3].Value}门";
+        }
+
+        // 匹配 "X/X/X" 格式（如 "7/7/7"）
+        match = Regex.Match(cleanedInput, @"^(\d+)/(\d+)/(\d+)$");
+        if (match.Success)
+        {
+            success = true;
+            return $"{match.Groups[1].Value}层{match.Groups[2].Value}站{match.Groups[3].Value}门";
+        }
+
+        // 提取所有数字并组合
+        var matches = Regex.Matches(cleanedInput, @"(\d+)");
+        if (matches.Count >= 3)
+        {
+            int num1 = int.Parse(matches[0].Value);
+            int num2 = int.Parse(matches[1].Value);
+            int num3 = int.Parse(matches[2].Value);
+
+            if (num1 <= 100 && num2 <= 100 && num3 <= 100)
+            {
+                success = true;
+                return $"{matches[0].Value}层{matches[1].Value}站{matches[2].Value}门";
+            }
+        }
+        else if (matches.Count == 2)
+        {
+            int num1 = int.Parse(matches[0].Value);
+            int num2 = int.Parse(matches[1].Value);
+
+            if (num1 <= 100 && num2 <= 100)
+            {
+                success = true;
+                return $"{matches[0].Value}层{matches[0].Value}站{matches[1].Value}门";
+            }
+        }
+        else if (matches.Count == 1)
+        {
+            int num1 = int.Parse(matches[0].Value);
+            if (num1 <= 100)
+            {
+                success = true;
+                return $"{matches[0].Value}层{matches[0].Value}站{matches[0].Value}门";
+            }
+        }
+
+        return "/";
     }
 
     private static void ObjsIndex(string str, JObject objs, out int indexj, out int indexi, out bool isContain)
