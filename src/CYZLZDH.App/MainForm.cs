@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using CYZLZDH.Core.Interfaces;
 using CYZLZDH.Core.Models;
 
@@ -17,6 +18,7 @@ public partial class MainForm : Form
     private readonly IWordService _wordService;
     private readonly IOcrService _ocrService;
     private readonly IGetFileContentAsBase64Service _base64Service;
+    private readonly ILogger<MainForm> _logger;
 
     private DocumentInfo? _originalDocInfo;
     private DocumentInfo? _reportDocInfo;
@@ -34,14 +36,18 @@ public partial class MainForm : Form
         IServiceProvider serviceProvider,
         IWordService wordService,
         IOcrService ocrService,
-        IGetFileContentAsBase64Service base64Service)
+        IGetFileContentAsBase64Service base64Service,
+        ILogger<MainForm> logger)
     {
         _serviceProvider = serviceProvider;
         _wordService = wordService;
         _ocrService = ocrService;
         _base64Service = base64Service;
+        _logger = logger;
 
         InitializeComponent();
+        
+        _logger.LogInformation("主窗体初始化完成");
     }
 
     private void BtnOriginalDoc_Click(object? sender, EventArgs e)
@@ -57,15 +63,19 @@ public partial class MainForm : Form
                 var fileName = Path.GetFileName(dialog.FileName);
                 if (!fileName.Contains("原始记录"))
                 {
-                    MessageBox.Show("请选择包含“原始记录”字样的文档！", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    _logger.LogWarning("用户选择了不包含\"原始记录\"的文档: {FileName}", fileName);
+                    MessageBox.Show("请选择包含\"原始记录\"字样的文档！", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
                 txtOriginalDoc.Text = dialog.FileName;
                 _originalDocInfo = _wordService.LoadDocument(dialog.FileName);
+                
+                _logger.LogInformation("原始记录文档加载成功: {FileName}", fileName);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "加载原始记录文档失败: {FileName}", dialog.FileName);
                 MessageBox.Show($"加载文档失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -84,15 +94,19 @@ public partial class MainForm : Form
                 var fileName = Path.GetFileName(dialog.FileName);
                 if (!fileName.Contains("测试报告"))
                 {
-                    MessageBox.Show("请选择包含“测试报告”字样的文档！", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    _logger.LogWarning("用户选择了不包含\"测试报告\"的文档: {FileName}", fileName);
+                    MessageBox.Show("请选择包含\"测试报告\"字样的文档！", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
                 txtReportDoc.Text = dialog.FileName;
                 _reportDocInfo = _wordService.LoadDocument(dialog.FileName);
+                
+                _logger.LogInformation("测试报告文档加载成功: {FileName}", fileName);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "加载测试报告文档失败: {FileName}", dialog.FileName);
                 MessageBox.Show($"加载文档失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -109,6 +123,8 @@ public partial class MainForm : Form
             _currentImagePath = dialog.FileName;
             lblCurrentImage.Text = $"当前图片: {Path.GetFileName(dialog.FileName)}";
             btnRecognize.Enabled = true;
+            
+            _logger.LogInformation("用户选择了图片: {FileName}", dialog.FileName);
         }
     }
 
@@ -116,9 +132,12 @@ public partial class MainForm : Form
     {
         if (string.IsNullOrEmpty(_currentImagePath))
         {
+            _logger.LogWarning("用户未选择图片就点击了识别按钮");
             MessageBox.Show("请先选择图片！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
+
+        _logger.LogInformation("开始OCR识别: {ImagePath}", _currentImagePath);
 
         try
         {
@@ -142,6 +161,8 @@ public partial class MainForm : Form
             var jsonFilePath = Path.Combine(jsonDir, jsonFileName);
             File.WriteAllText(jsonFilePath, jsonResult);
             
+            _logger.LogInformation("OCR结果已保存: {JsonFilePath}", jsonFilePath);
+            
             var ocrResult = _ocrService.RecognizeTableAndParse(imageBase64);
 
             // 自动提取报告编号后7位
@@ -154,6 +175,8 @@ public partial class MainForm : Form
                 }
             }
 
+            _logger.LogInformation("OCR解析完成，报告编号: {ReportNum}", ocrResult.ReportNum);
+
             UpdateOcrFieldsFromResult(ocrResult);
             UpdateMappingList();
             txtOcrResult.ReadOnly = false;
@@ -162,6 +185,7 @@ public partial class MainForm : Form
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "OCR识别失败: {ImagePath}", _currentImagePath);
             MessageBox.Show($"OCR识别失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         finally
@@ -296,6 +320,8 @@ public partial class MainForm : Form
 
     private void BtnClear_Click(object? sender, EventArgs e)
     {
+        _logger.LogInformation("用户点击了全部清空按钮");
+        
         // 清空文档路径
         txtOriginalDoc.Text = string.Empty;
         txtReportDoc.Text = string.Empty;
@@ -312,7 +338,50 @@ public partial class MainForm : Form
         // 清空映射表
         gridMapping.Rows.Clear();
 
+        _logger.LogInformation("所有数据已清空");
         MessageBox.Show("所有数据已清空。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    private void BtnViewLogs_Click(object? sender, EventArgs e)
+    {
+        _logger.LogInformation("用户点击了查看日志按钮");
+        
+        var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
+        if (!Directory.Exists(logPath))
+        {
+            MessageBox.Show("日志目录不存在。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var logFiles = Directory.GetFiles(logPath, "log-*.txt")
+            .OrderByDescending(f => f)
+            .ToList();
+
+        if (logFiles.Count == 0)
+        {
+            MessageBox.Show("没有找到日志文件。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        using var dialog = new OpenFileDialog();
+        dialog.InitialDirectory = logPath;
+        dialog.Filter = "日志文件|log-*.txt|所有文件|*.*";
+        dialog.Title = "选择日志文件";
+        dialog.FileName = logFiles[0];
+
+        if (dialog.ShowDialog() == DialogResult.OK)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start("notepad.exe", dialog.FileName);
+                _logger.LogInformation("已打开日志文件: {FileName}", dialog.FileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "打开日志文件失败: {FileName}", dialog.FileName);
+                MessageBox.Show($"打开日志文件失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
     }
 
     private void UpdateMappingList()

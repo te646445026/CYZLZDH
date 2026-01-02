@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using CYZLZDH.Core.Models;
 using CYZLZDH.Core.Services.Interfaces;
@@ -9,8 +10,17 @@ namespace CYZLZDH.Core.Services;
 
 public class TencentOcrParser : IOcrParser
 {
+    private readonly ILogger<TencentOcrParser> _logger;
+
+    public TencentOcrParser(ILogger<TencentOcrParser> logger)
+    {
+        _logger = logger;
+    }
+
     public OcrResult Parse(string json)
     {
+        _logger.LogInformation("开始解析OCR结果");
+        
         var objs = JObject.Parse(json);
         var result = new OcrResult();
 
@@ -880,9 +890,10 @@ public class TencentOcrParser : IOcrParser
         catch (Exception ex)
         {
             // 如果解析失败，返回默认结果
-            Console.WriteLine($"OCR解析错误: {ex.Message}");
+            _logger.LogError(ex, "OCR解析错误");
         }
 
+        _logger.LogInformation("OCR解析完成");
         return result;
     }
 

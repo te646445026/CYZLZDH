@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using CYZLZDH.Core.Interfaces;
 using CYZLZDH.Core.Exceptions;
 using CYZLZDH.Core.Models;
@@ -23,12 +24,14 @@ public class TencentOcrService : IOcrService
     private static readonly HttpClient Client = new HttpClient();
 
     private readonly IOcrParser _ocrParser;
+    private readonly ILogger<TencentOcrService> _logger;
 
-    public TencentOcrService(string secretId, string secretKey, IOcrParser ocrParser)
+    public TencentOcrService(string secretId, string secretKey, IOcrParser ocrParser, ILogger<TencentOcrService> logger)
     {
         _secretId = secretId;
         _secretKey = secretKey;
         _ocrParser = ocrParser;
+        _logger = logger;
         _service = "ocr";
         _version = "2018-11-19";
         _action = "RecognizeTableAccurateOCR";
@@ -43,19 +46,27 @@ public class TencentOcrService : IOcrService
     /// <exception cref="OcrServiceException">OCR服务调用失败时抛出</exception>
     public OcrResult RecognizeTableAndParse(string imageBase64)
     {
+        _logger.LogInformation("开始OCR识别和解析");
+        
         try
         {
             var jsonResult = RecognizeTable(imageBase64);
-            return _ocrParser.Parse(jsonResult);
+            var result = _ocrParser.Parse(jsonResult);
+            
+            _logger.LogInformation("OCR识别和解析成功");
+            return result;
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "OCR识别和解析过程中发生错误");
             throw new OcrServiceException("OCR识别和解析过程中发生错误", ex);
         }
     }
 
     public string RecognizeTable(string imageBase64)
     {
+        _logger.LogInformation("开始调用腾讯云OCR服务");
+        
         try
         {
             var body = imageBase64;
@@ -69,7 +80,10 @@ public class TencentOcrService : IOcrService
             {
                 try
                 {
+                    _logger.LogDebug("尝试第 {RetryCount} 次OCR请求", retryCount + 1);
                     var result = DoRequest(_secretId, _secretKey, _service, _version, _action, body, _region, token);
+                    
+                    _logger.LogInformation("OCR服务调用成功");
                     return result;
                 }
                 catch (Exception ex)
@@ -77,14 +91,18 @@ public class TencentOcrService : IOcrService
                     lastException = ex;
                     retryCount++;
                     
+                    _logger.LogWarning(ex, "OCR请求失败，第 {RetryCount} 次重试", retryCount);
+                    
                     if (retryCount >= maxRetries)
                         break;
                         
                     int delayMs = (int)Math.Pow(2, retryCount) * 1000;
+                    _logger.LogDebug("等待 {DelayMs}ms 后重试", delayMs);
                     Thread.Sleep(delayMs);
                 }
             }
             
+            _logger.LogError("OCR服务调用失败，已重试 {MaxRetries} 次", maxRetries);
             throw new OcrServiceException($"OCR服务调用失败，已重试{maxRetries}次", lastException);
         }
         catch (OcrServiceException)
@@ -106,10 +124,13 @@ public class TencentOcrService : IOcrService
             
             if (!response.IsSuccessStatusCode)
             {
+                _logger.LogError("HTTP请求失败，状态码: {StatusCode}，原因: {ReasonPhrase}", response.StatusCode, response.ReasonPhrase);
                 throw new OcrServiceException($"HTTP请求失败，状态码: {response.StatusCode}，原因: {response.ReasonPhrase}");
             }
             
-            return response.Content.ReadAsStringAsync().Result;
+            var result = response.Content.ReadAsStringAsync().Result;
+            _logger.LogDebug("收到OCR响应，长度: {Length} 字符", result.Length);
+            return result;
         }
         catch (OcrServiceException)
         {
@@ -117,14 +138,17 @@ public class TencentOcrService : IOcrService
         }
         catch (HttpRequestException ex)
         {
+            _logger.LogError(ex, "HTTP请求异常");
             throw new OcrServiceException("HTTP请求异常", ex);
         }
         catch (TaskCanceledException ex)
         {
+            _logger.LogError(ex, "请求超时");
             throw new OcrServiceException("请求超时", ex);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "执行请求时发生未知错误");
             throw new OcrServiceException("执行请求时发生未知错误", ex);
         }
     }

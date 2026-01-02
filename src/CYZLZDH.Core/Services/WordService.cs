@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Drawing;
+using Microsoft.Extensions.Logging;
 using Spire.Doc;
 using Spire.Doc.Documents;
 using Spire.Doc.Fields;
@@ -13,11 +14,20 @@ namespace CYZLZDH.Core.Services;
 
 public class WordService : IWordService
 {
+    private readonly ILogger<WordService> _logger;
+    
     // 同时匹配半角 [] 和全角 【】
     private static readonly Regex MarkerRegex = new(@"\[(\d+)\]|【(\d+)】", RegexOptions.Compiled);
 
+    public WordService(ILogger<WordService> logger)
+    {
+        _logger = logger;
+    }
+
     public DocumentInfo LoadDocument(string filePath)
     {
+        _logger.LogInformation("开始加载文档: {FilePath}", filePath);
+        
         var docInfo = new DocumentInfo
         {
             FilePath = filePath,
@@ -31,9 +41,12 @@ public class WordService : IWordService
             docInfo.Title = GetDocumentTitle(document);
             docInfo.Markers = FindAllMarkers(document);
             document.Close();
+            
+            _logger.LogInformation("文档加载成功，找到 {MarkerCount} 个标记", docInfo.Markers.Count);
         }
         else
         {
+            _logger.LogError("不支持的文档格式: {Extension}", extension);
             throw new NotSupportedException($"不支持的文档格式: {extension}。支持的格式：.docx, .doc");
         }
 
@@ -53,7 +66,13 @@ public class WordService : IWordService
 
     public void ReplaceMarkers(DocumentInfo doc, Dictionary<string, string> replacements)
     {
-        if (replacements == null || replacements.Count == 0) return;
+        if (replacements == null || replacements.Count == 0)
+        {
+            _logger.LogWarning("替换标记列表为空");
+            return;
+        }
+
+        _logger.LogInformation("开始替换文档标记，共 {Count} 个", replacements.Count);
 
         var document = new Document(doc.FilePath);
 
@@ -110,15 +129,19 @@ public class WordService : IWordService
                 // 尝试替换全角格式 【1】
                 var fullWidthPattern = $"【{markerNum}】";
                 document.Replace(fullWidthPattern, value, false, false);
+                
+                _logger.LogDebug("替换标记 {MarkerId} 为 {Value}", kvp.Key, value);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"替换标记 {kvp.Key} 失败: {ex.Message}");
+                _logger.LogError(ex, "替换标记 {MarkerId} 失败", kvp.Key);
             }
         }
 
         document.SaveToFile(doc.FilePath);
         document.Close();
+        
+        _logger.LogInformation("文档标记替换完成: {FilePath}", doc.FilePath);
     }
 
     private void ReplaceCellContent(Document document, string marker, string newValue, string fontName, float fontSize, HorizontalAlignment alignment)

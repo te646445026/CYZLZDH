@@ -33,6 +33,7 @@ namespace CYZLZDH.App
         private FlowLayoutPanel buttonPanel;
         private Button btnProcess;
         private Button btnClear;
+        private Button btnViewLogs;
         private Panel statusPanel;
         private Label lblStatus;
         private Panel headerPanel;
@@ -77,6 +78,7 @@ namespace CYZLZDH.App
             this.buttonPanel = new System.Windows.Forms.FlowLayoutPanel();
             this.btnProcess = new System.Windows.Forms.Button();
             this.btnClear = new System.Windows.Forms.Button();
+            this.btnViewLogs = new System.Windows.Forms.Button();
             this.statusPanel = new System.Windows.Forms.Panel();
             this.lblStatus = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.gridMapping)).BeginInit();
@@ -450,6 +452,7 @@ namespace CYZLZDH.App
             // 
             this.buttonPanel.Controls.Add(this.btnProcess);
             this.buttonPanel.Controls.Add(this.btnClear);
+            this.buttonPanel.Controls.Add(this.btnViewLogs);
             this.buttonPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.buttonPanel.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
             this.buttonPanel.Location = new System.Drawing.Point(708, 3);
@@ -491,6 +494,23 @@ namespace CYZLZDH.App
             this.btnClear.Text = "全部清空";
             this.btnClear.UseVisualStyleBackColor = false;
             this.btnClear.Click += new System.EventHandler(this.BtnClear_Click);
+            // 
+            // btnViewLogs
+            // 
+            this.btnViewLogs.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
+            this.btnViewLogs.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnViewLogs.FlatAppearance.BorderSize = 0;
+            this.btnViewLogs.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnViewLogs.Font = new System.Drawing.Font("微软雅黑", 9F);
+            this.btnViewLogs.ForeColor = System.Drawing.Color.White;
+            this.btnViewLogs.Location = new System.Drawing.Point(3, 85);
+            this.btnViewLogs.Margin = new System.Windows.Forms.Padding(0, 0, 0, 5);
+            this.btnViewLogs.Name = "btnViewLogs";
+            this.btnViewLogs.Size = new System.Drawing.Size(164, 35);
+            this.btnViewLogs.TabIndex = 4;
+            this.btnViewLogs.Text = "查看日志";
+            this.btnViewLogs.UseVisualStyleBackColor = false;
+            this.btnViewLogs.Click += new System.EventHandler(this.BtnViewLogs_Click);
             // 
             // statusPanel
             // 
