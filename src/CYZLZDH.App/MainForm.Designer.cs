@@ -34,6 +34,7 @@ namespace CYZLZDH.App
         private Button btnProcess;
         private Button btnClear;
         private Button btnViewLogs;
+        private CheckBox chkEnablePreprocessing;
         private Panel statusPanel;
         private Label lblStatus;
         private Panel headerPanel;
@@ -79,6 +80,7 @@ namespace CYZLZDH.App
             this.btnProcess = new System.Windows.Forms.Button();
             this.btnClear = new System.Windows.Forms.Button();
             this.btnViewLogs = new System.Windows.Forms.Button();
+            this.chkEnablePreprocessing = new System.Windows.Forms.CheckBox();
             this.statusPanel = new System.Windows.Forms.Panel();
             this.lblStatus = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.gridMapping)).BeginInit();
@@ -92,6 +94,7 @@ namespace CYZLZDH.App
             this.mappingGroup.SuspendLayout();
             this.mappingLayout.SuspendLayout();
             this.buttonPanel.SuspendLayout();
+            this.chkEnablePreprocessing.SuspendLayout();
             this.statusPanel.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -114,7 +117,7 @@ namespace CYZLZDH.App
             this.mainLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 95F));
             this.mainLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 75F));
             this.mainLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.mainLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 180F));
+            this.mainLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 260F));
             this.mainLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 30F));
             this.mainLayout.Size = new System.Drawing.Size(1000, 700);
             this.mainLayout.TabIndex = 0;
@@ -389,7 +392,7 @@ namespace CYZLZDH.App
             this.mappingGroup.Location = new System.Drawing.Point(10, 510);
             this.mappingGroup.Name = "mappingGroup";
             this.mappingGroup.Padding = new System.Windows.Forms.Padding(10);
-            this.mappingGroup.Size = new System.Drawing.Size(900, 180);
+            this.mappingGroup.Size = new System.Drawing.Size(900, 240);
             this.mappingGroup.TabIndex = 4;
             this.mappingGroup.TabStop = false;
             this.mappingGroup.Text = "标记符映射配置";
@@ -406,7 +409,7 @@ namespace CYZLZDH.App
             this.mappingLayout.Name = "mappingLayout";
             this.mappingLayout.RowCount = 1;
             this.mappingLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.mappingLayout.Size = new System.Drawing.Size(880, 146);
+            this.mappingLayout.Size = new System.Drawing.Size(880, 230);
             this.mappingLayout.TabIndex = 0;
             // 
             // gridMapping
@@ -453,12 +456,13 @@ namespace CYZLZDH.App
             this.buttonPanel.Controls.Add(this.btnProcess);
             this.buttonPanel.Controls.Add(this.btnClear);
             this.buttonPanel.Controls.Add(this.btnViewLogs);
+            this.buttonPanel.Controls.Add(this.chkEnablePreprocessing);
             this.buttonPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.buttonPanel.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
             this.buttonPanel.Location = new System.Drawing.Point(708, 3);
             this.buttonPanel.Name = "buttonPanel";
             this.buttonPanel.Padding = new System.Windows.Forms.Padding(3, 5, 3, 5);
-            this.buttonPanel.Size = new System.Drawing.Size(170, 140);
+            this.buttonPanel.Size = new System.Drawing.Size(170, 200);
             this.buttonPanel.TabIndex = 1;
             // 
             // btnProcess
@@ -512,6 +516,18 @@ namespace CYZLZDH.App
             this.btnViewLogs.UseVisualStyleBackColor = false;
             this.btnViewLogs.Click += new System.EventHandler(this.BtnViewLogs_Click);
             // 
+            // chkEnablePreprocessing
+            // 
+            this.chkEnablePreprocessing.AutoSize = true;
+            this.chkEnablePreprocessing.Font = new System.Drawing.Font("微软雅黑", 9F);
+            this.chkEnablePreprocessing.Margin = new System.Windows.Forms.Padding(0, 5, 0, 5);
+            this.chkEnablePreprocessing.Name = "chkEnablePreprocessing";
+            this.chkEnablePreprocessing.Size = new System.Drawing.Size(164, 19);
+            this.chkEnablePreprocessing.TabIndex = 5;
+            this.chkEnablePreprocessing.Text = "启用图像预处理";
+            this.chkEnablePreprocessing.UseVisualStyleBackColor = true;
+            this.chkEnablePreprocessing.CheckedChanged += new System.EventHandler(this.ChkEnablePreprocessing_CheckedChanged);
+            // 
             // statusPanel
             // 
             this.statusPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(236)))), ((int)(((byte)(240)))), ((int)(((byte)(241)))));
@@ -545,7 +561,7 @@ namespace CYZLZDH.App
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "电梯乘运质量文档处理系统";
-            this.MinimumSize = new System.Drawing.Size(1020, 760);
+            this.MinimumSize = new System.Drawing.Size(1020, 820);
             this.mainLayout.ResumeLayout(false);
             this.headerPanel.ResumeLayout(false);
             this.docManagementGroup.ResumeLayout(false);
@@ -560,6 +576,9 @@ namespace CYZLZDH.App
             this.mappingLayout.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.gridMapping)).EndInit();
             this.buttonPanel.ResumeLayout(false);
+            this.buttonPanel.PerformLayout();
+            this.chkEnablePreprocessing.ResumeLayout(false);
+            this.chkEnablePreprocessing.PerformLayout();
             this.statusPanel.ResumeLayout(false);
             this.statusPanel.PerformLayout();
             this.ResumeLayout(false);

@@ -47,6 +47,24 @@ public partial class MainForm : Form
 
         InitializeComponent();
         
+        try
+        {
+            var keyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "key.json");
+            if (File.Exists(keyPath))
+            {
+                var keyJson = File.ReadAllText(keyPath);
+                var keyData = Newtonsoft.Json.JsonConvert.DeserializeObject<KEY>(keyJson);
+                if (keyData != null)
+                {
+                    chkEnablePreprocessing.Checked = keyData.ENABLE_IMAGE_PREPROCESSING;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "加载图像预处理设置时发生错误");
+        }
+        
         _logger.LogInformation("主窗体初始化完成");
     }
 
@@ -436,6 +454,39 @@ public partial class MainForm : Form
         sb.AppendLine();
         sb.AppendLine("═════════════════════════════════════════════════════════════════════");
         return sb.ToString();
+    }
+
+    private void ChkEnablePreprocessing_CheckedChanged(object? sender, EventArgs e)
+    {
+        try
+        {
+            var keyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "key.json");
+            
+            if (!File.Exists(keyPath))
+            {
+                MessageBox.Show("配置文件不存在。", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                chkEnablePreprocessing.CheckedChanged -= ChkEnablePreprocessing_CheckedChanged;
+                chkEnablePreprocessing.Checked = false;
+                chkEnablePreprocessing.CheckedChanged += ChkEnablePreprocessing_CheckedChanged;
+                return;
+            }
+
+            var keyJson = File.ReadAllText(keyPath);
+            var keyData = Newtonsoft.Json.JsonConvert.DeserializeObject<KEY>(keyJson);
+            
+            if (keyData != null)
+            {
+                keyData.ENABLE_IMAGE_PREPROCESSING = chkEnablePreprocessing.Checked;
+                File.WriteAllText(keyPath, Newtonsoft.Json.JsonConvert.SerializeObject(keyData, Newtonsoft.Json.Formatting.Indented));
+                _logger.LogInformation("图像预处理设置已更新: {Enabled}", chkEnablePreprocessing.Checked);
+                MessageBox.Show($"图像预处理已{(chkEnablePreprocessing.Checked ? "启用" : "禁用")}。请重新启动应用程序以使更改生效。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "更新图像预处理设置时发生错误");
+            MessageBox.Show($"更新设置失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
     }
 }
 

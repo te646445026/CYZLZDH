@@ -58,13 +58,20 @@ static class Program
                 return new TencentOcrParser(logger);
             });
 
+            services.AddSingleton<IImagePreprocessor>(provider =>
+            {
+                var logger = provider.GetRequiredService<ILogger<ImagePreprocessor>>();
+                return new ImagePreprocessor(logger);
+            });
+
             services.AddSingleton<IOcrService>(provider =>
             {
                 var keyService = provider.GetRequiredService<IKeyService>();
                 var key = keyService.CheckKey();
                 var ocrParser = provider.GetRequiredService<IOcrParser>();
                 var logger = provider.GetRequiredService<ILogger<TencentOcrService>>();
-                return new TencentOcrService(key.API_KEY, key.SECRET_KEY, ocrParser, logger);
+                var imagePreprocessor = provider.GetRequiredService<IImagePreprocessor>();
+                return new TencentOcrService(key.API_KEY, key.SECRET_KEY, ocrParser, logger, imagePreprocessor, key.ENABLE_IMAGE_PREPROCESSING);
             });
 
             services.AddSingleton<IWordService>(provider =>
