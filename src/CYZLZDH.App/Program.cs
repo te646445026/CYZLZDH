@@ -54,14 +54,20 @@ static class Program
 
             services.AddSingleton<IOcrParser>(provider =>
             {
-                var logger = provider.GetRequiredService<ILogger<TencentOcrParser>>();
-                return new TencentOcrParser(logger);
-            });
-
-            services.AddSingleton<IImagePreprocessor>(provider =>
-            {
-                var logger = provider.GetRequiredService<ILogger<ImagePreprocessor>>();
-                return new ImagePreprocessor(logger);
+                var keyService = provider.GetRequiredService<IKeyService>();
+                var key = keyService.CheckKey();
+                var providerType = keyService.GetProviderType();
+                
+                if (providerType == "baidu")
+                {
+                    var logger = provider.GetRequiredService<ILogger<BaiduOcrParser>>();
+                    return new BaiduOcrParser(logger);
+                }
+                else
+                {
+                    var logger = provider.GetRequiredService<ILogger<TencentOcrParser>>();
+                    return new TencentOcrParser(logger);
+                }
             });
 
             services.AddSingleton<IOcrService>(provider =>
@@ -69,9 +75,18 @@ static class Program
                 var keyService = provider.GetRequiredService<IKeyService>();
                 var key = keyService.CheckKey();
                 var ocrParser = provider.GetRequiredService<IOcrParser>();
-                var logger = provider.GetRequiredService<ILogger<TencentOcrService>>();
-                var imagePreprocessor = provider.GetRequiredService<IImagePreprocessor>();
-                return new TencentOcrService(key.API_KEY, key.SECRET_KEY, ocrParser, logger, imagePreprocessor, key.ENABLE_IMAGE_PREPROCESSING);
+                var providerType = keyService.GetProviderType();
+                
+                if (providerType == "baidu")
+                {
+                    var logger = provider.GetRequiredService<ILogger<BaiduOcrService>>();
+                    return new BaiduOcrService(key.BAIDU_API_KEY, key.BAIDU_SECRET_KEY, ocrParser, logger);
+                }
+                else
+                {
+                    var logger = provider.GetRequiredService<ILogger<TencentOcrService>>();
+                    return new TencentOcrService(key.API_KEY, key.SECRET_KEY, ocrParser, logger);
+                }
             });
 
             services.AddSingleton<IWordService>(provider =>

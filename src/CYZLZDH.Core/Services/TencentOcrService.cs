@@ -25,17 +25,13 @@ public class TencentOcrService : IOcrService
 
     private readonly IOcrParser _ocrParser;
     private readonly ILogger<TencentOcrService> _logger;
-    private readonly IImagePreprocessor _imagePreprocessor;
-    private readonly bool _enableImagePreprocessing;
 
-    public TencentOcrService(string secretId, string secretKey, IOcrParser ocrParser, ILogger<TencentOcrService> logger, IImagePreprocessor imagePreprocessor, bool enableImagePreprocessing = false)
+    public TencentOcrService(string secretId, string secretKey, IOcrParser ocrParser, ILogger<TencentOcrService> logger)
     {
         _secretId = secretId;
         _secretKey = secretKey;
         _ocrParser = ocrParser;
         _logger = logger;
-        _imagePreprocessor = imagePreprocessor;
-        _enableImagePreprocessing = enableImagePreprocessing;
         _service = "ocr";
         _version = "2018-11-19";
         _action = "RecognizeTableAccurateOCR";
@@ -54,19 +50,7 @@ public class TencentOcrService : IOcrService
         
         try
         {
-            string imageToProcess = imageBase64;
-            
-            if (_enableImagePreprocessing)
-            {
-                _logger.LogInformation("图像预处理已启用");
-                imageToProcess = _imagePreprocessor.ProcessImage(imageBase64);
-            }
-            else
-            {
-                _logger.LogInformation("图像预处理已禁用");
-            }
-            
-            var jsonResult = RecognizeTable(imageToProcess);
+            var jsonResult = RecognizeTable(imageBase64);
             var result = _ocrParser.Parse(jsonResult);
             
             _logger.LogInformation("OCR识别和解析成功");

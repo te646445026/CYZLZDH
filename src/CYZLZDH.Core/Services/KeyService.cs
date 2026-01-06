@@ -43,4 +43,33 @@ public class KeyService : IKeyService
             throw;
         }
     }
+
+    public string GetProviderType()
+    {
+        _logger.LogInformation("正在获取OCR供应商类型");
+        
+        string keyPath = System.Environment.CurrentDirectory + @"\key.json";
+        
+        if (!File.Exists(keyPath))
+        {
+            _logger.LogWarning("密钥文件不存在，使用默认供应商: tencent");
+            return "tencent";
+        }
+        
+        try
+        {
+            string keyJson = File.ReadAllText(keyPath);
+            var key = JsonConvert.DeserializeObject<KEY>(keyJson);
+            
+            var provider = key?.OCR_PROVIDER?.ToLowerInvariant() ?? "tencent";
+            
+            _logger.LogInformation("OCR供应商类型: {Provider}", provider);
+            return provider;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "读取供应商配置失败，使用默认: tencent");
+            return "tencent";
+        }
+    }
 }

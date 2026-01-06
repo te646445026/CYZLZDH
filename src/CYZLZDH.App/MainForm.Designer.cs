@@ -22,6 +22,8 @@ namespace CYZLZDH.App
         private Label lblCurrentImage;
         private Button btnRecognize;
         private Label spacer;
+        private Label lblOcrProvider;
+        private ComboBox cmbOcrProvider;
         private GroupBox resultGroup;
         private TextBox txtOcrResult;
         private GroupBox mappingGroup;
@@ -34,7 +36,6 @@ namespace CYZLZDH.App
         private Button btnProcess;
         private Button btnClear;
         private Button btnViewLogs;
-        private CheckBox chkEnablePreprocessing;
         private Panel statusPanel;
         private Label lblStatus;
         private Panel headerPanel;
@@ -68,6 +69,8 @@ namespace CYZLZDH.App
             this.lblCurrentImage = new System.Windows.Forms.Label();
             this.btnRecognize = new System.Windows.Forms.Button();
             this.spacer = new System.Windows.Forms.Label();
+            this.lblOcrProvider = new System.Windows.Forms.Label();
+            this.cmbOcrProvider = new System.Windows.Forms.ComboBox();
             this.resultGroup = new System.Windows.Forms.GroupBox();
             this.txtOcrResult = new System.Windows.Forms.TextBox();
             this.mappingGroup = new System.Windows.Forms.GroupBox();
@@ -80,7 +83,6 @@ namespace CYZLZDH.App
             this.btnProcess = new System.Windows.Forms.Button();
             this.btnClear = new System.Windows.Forms.Button();
             this.btnViewLogs = new System.Windows.Forms.Button();
-            this.chkEnablePreprocessing = new System.Windows.Forms.CheckBox();
             this.statusPanel = new System.Windows.Forms.Panel();
             this.lblStatus = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.gridMapping)).BeginInit();
@@ -94,7 +96,6 @@ namespace CYZLZDH.App
             this.mappingGroup.SuspendLayout();
             this.mappingLayout.SuspendLayout();
             this.buttonPanel.SuspendLayout();
-            this.chkEnablePreprocessing.SuspendLayout();
             this.statusPanel.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -279,15 +280,19 @@ namespace CYZLZDH.App
             // 
             // imageLayout
             // 
-            this.imageLayout.ColumnCount = 4;
+            this.imageLayout.ColumnCount = 6;
+            this.imageLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 80F));
             this.imageLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 100F));
-            this.imageLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.imageLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 80F));
+            this.imageLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 100F));
             this.imageLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 100F));
             this.imageLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 60F));
-            this.imageLayout.Controls.Add(this.btnSelectImage, 0, 0);
-            this.imageLayout.Controls.Add(this.lblCurrentImage, 1, 0);
-            this.imageLayout.Controls.Add(this.btnRecognize, 2, 0);
-            this.imageLayout.Controls.Add(this.spacer, 3, 0);
+            this.imageLayout.Controls.Add(this.lblOcrProvider, 0, 0);
+            this.imageLayout.Controls.Add(this.cmbOcrProvider, 1, 0);
+            this.imageLayout.Controls.Add(this.btnSelectImage, 2, 0);
+            this.imageLayout.Controls.Add(this.lblCurrentImage, 3, 0);
+            this.imageLayout.Controls.Add(this.btnRecognize, 4, 0);
+            this.imageLayout.Controls.Add(this.spacer, 5, 0);
             this.imageLayout.Dock = System.Windows.Forms.DockStyle.Fill;
             this.imageLayout.Location = new System.Drawing.Point(10, 24);
             this.imageLayout.Name = "imageLayout";
@@ -295,6 +300,29 @@ namespace CYZLZDH.App
             this.imageLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 35F));
             this.imageLayout.Size = new System.Drawing.Size(880, 41);
             this.imageLayout.TabIndex = 0;
+            // 
+            // lblOcrProvider
+            // 
+            this.lblOcrProvider.Anchor = System.Windows.Forms.AnchorStyles.Right;
+            this.lblOcrProvider.AutoSize = true;
+            this.lblOcrProvider.Font = new System.Drawing.Font("微软雅黑", 9F);
+            this.lblOcrProvider.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(73)))), ((int)(((byte)(94)))));
+            this.lblOcrProvider.Location = new System.Drawing.Point(8, 10);
+            this.lblOcrProvider.Name = "lblOcrProvider";
+            this.lblOcrProvider.Size = new System.Drawing.Size(59, 17);
+            this.lblOcrProvider.TabIndex = 4;
+            this.lblOcrProvider.Text = "OCR供应商:";
+            // 
+            // cmbOcrProvider
+            // 
+            this.cmbOcrProvider.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbOcrProvider.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.cmbOcrProvider.Font = new System.Drawing.Font("微软雅黑", 9F);
+            this.cmbOcrProvider.FormattingEnabled = true;
+            this.cmbOcrProvider.Location = new System.Drawing.Point(75, 6);
+            this.cmbOcrProvider.Name = "cmbOcrProvider";
+            this.cmbOcrProvider.Size = new System.Drawing.Size(100, 25);
+            this.cmbOcrProvider.TabIndex = 5;
             // 
             // btnSelectImage
             // 
@@ -456,7 +484,6 @@ namespace CYZLZDH.App
             this.buttonPanel.Controls.Add(this.btnProcess);
             this.buttonPanel.Controls.Add(this.btnClear);
             this.buttonPanel.Controls.Add(this.btnViewLogs);
-            this.buttonPanel.Controls.Add(this.chkEnablePreprocessing);
             this.buttonPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.buttonPanel.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
             this.buttonPanel.Location = new System.Drawing.Point(708, 3);
@@ -516,18 +543,6 @@ namespace CYZLZDH.App
             this.btnViewLogs.UseVisualStyleBackColor = false;
             this.btnViewLogs.Click += new System.EventHandler(this.BtnViewLogs_Click);
             // 
-            // chkEnablePreprocessing
-            // 
-            this.chkEnablePreprocessing.AutoSize = true;
-            this.chkEnablePreprocessing.Font = new System.Drawing.Font("微软雅黑", 9F);
-            this.chkEnablePreprocessing.Margin = new System.Windows.Forms.Padding(0, 5, 0, 5);
-            this.chkEnablePreprocessing.Name = "chkEnablePreprocessing";
-            this.chkEnablePreprocessing.Size = new System.Drawing.Size(164, 19);
-            this.chkEnablePreprocessing.TabIndex = 5;
-            this.chkEnablePreprocessing.Text = "启用图像预处理";
-            this.chkEnablePreprocessing.UseVisualStyleBackColor = true;
-            this.chkEnablePreprocessing.CheckedChanged += new System.EventHandler(this.ChkEnablePreprocessing_CheckedChanged);
-            // 
             // statusPanel
             // 
             this.statusPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(236)))), ((int)(((byte)(240)))), ((int)(((byte)(241)))));
@@ -577,8 +592,6 @@ namespace CYZLZDH.App
             ((System.ComponentModel.ISupportInitialize)(this.gridMapping)).EndInit();
             this.buttonPanel.ResumeLayout(false);
             this.buttonPanel.PerformLayout();
-            this.chkEnablePreprocessing.ResumeLayout(false);
-            this.chkEnablePreprocessing.PerformLayout();
             this.statusPanel.ResumeLayout(false);
             this.statusPanel.PerformLayout();
             this.ResumeLayout(false);

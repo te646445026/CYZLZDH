@@ -7,6 +7,7 @@ using System.Linq;
 using System.Windows.Forms;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using CYZLZDH.Core.Interfaces;
 using CYZLZDH.Core.Models;
 
@@ -24,6 +25,7 @@ public partial class MainForm : Form
     private DocumentInfo? _reportDocInfo;
     private string _currentImagePath = string.Empty;
     private List<OCRField> _ocrFields = new();
+    private bool _isInitializing = true;
 
     private readonly string[] FieldDescriptions = new[]
     {
@@ -47,25 +49,109 @@ public partial class MainForm : Form
 
         InitializeComponent();
         
+        InitializeOcrProviderCombo();
+        
+        _isInitializing = false;
+        
+        _logger.LogInformation("主窗体初始化完成");
+    }
+
+    private void InitializeOcrProviderCombo()
+    {
+        cmbOcrProvider.Items.Clear();
+        cmbOcrProvider.Items.Add(new ComboBoxItem("腾讯云OCR", "tencent"));
+        cmbOcrProvider.Items.Add(new ComboBoxItem("百度AI OCR", "baidu"));
+        
+        string currentProvider = LoadOcrProviderFromConfig();
+        int selectedIndex = 0;
+        for (int i = 0; i < cmbOcrProvider.Items.Count; i++)
+        {
+            if ((cmbOcrProvider.Items[i] as ComboBoxItem)?.Value == currentProvider)
+            {
+                selectedIndex = i;
+                break;
+            }
+        }
+        cmbOcrProvider.SelectedIndex = selectedIndex;
+        
+        cmbOcrProvider.SelectedIndexChanged += CmbOcrProvider_SelectedIndexChanged;
+    }
+
+    private string LoadOcrProviderFromConfig()
+    {
         try
         {
-            var keyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "key.json");
+            string keyPath = System.Environment.CurrentDirectory + @"\key.json";
             if (File.Exists(keyPath))
             {
-                var keyJson = File.ReadAllText(keyPath);
-                var keyData = Newtonsoft.Json.JsonConvert.DeserializeObject<KEY>(keyJson);
-                if (keyData != null)
+                string keyJson = File.ReadAllText(keyPath);
+                var key = JsonConvert.DeserializeObject<KEY>(keyJson);
+                return key?.OCR_PROVIDER?.ToLowerInvariant() ?? "tencent";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "加载OCR供应商配置失败，使用默认: tencent");
+        }
+        return "tencent";
+    }
+
+    private void CmbOcrProvider_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        if (_isInitializing) return;
+        
+        var selectedItem = cmbOcrProvider.SelectedItem as ComboBoxItem;
+        if (selectedItem == null) return;
+        
+        string provider = selectedItem.Value;
+        _logger.LogInformation("用户切换OCR供应商: {Provider}", provider);
+        
+        var result = MessageBox.Show(
+            $"已切换OCR供应商为: {selectedItem.Text}\n切换将在程序重启后生效，是否立即重启？", 
+            "OCR供应商切换", 
+            MessageBoxButtons.YesNo, 
+            MessageBoxIcon.Question);
+        
+        if (result == DialogResult.Yes)
+        {
+            SaveOcrProviderToConfig(provider);
+            RestartApplication();
+        }
+        else
+        {
+            SaveOcrProviderToConfig(provider);
+        }
+    }
+
+    private void SaveOcrProviderToConfig(string provider)
+    {
+        try
+        {
+            string keyPath = System.Environment.CurrentDirectory + @"\key.json";
+            if (File.Exists(keyPath))
+            {
+                string keyJson = File.ReadAllText(keyPath);
+                var key = JsonConvert.DeserializeObject<KEY>(keyJson);
+                if (key != null)
                 {
-                    chkEnablePreprocessing.Checked = keyData.ENABLE_IMAGE_PREPROCESSING;
+                    key.OCR_PROVIDER = provider;
+                    File.WriteAllText(keyPath, JsonConvert.SerializeObject(key, Formatting.Indented));
+                    _logger.LogInformation("OCR供应商配置已保存: {Provider}", provider);
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "加载图像预处理设置时发生错误");
+            _logger.LogError(ex, "保存OCR供应商配置失败");
+            MessageBox.Show($"保存配置失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
-        
-        _logger.LogInformation("主窗体初始化完成");
+    }
+
+    private void RestartApplication()
+    {
+        _logger.LogInformation("正在重启应用程序...");
+        Application.Restart();
+        Environment.Exit(0);
     }
 
     private void BtnOriginalDoc_Click(object? sender, EventArgs e)
@@ -455,39 +541,6 @@ public partial class MainForm : Form
         sb.AppendLine("═════════════════════════════════════════════════════════════════════");
         return sb.ToString();
     }
-
-    private void ChkEnablePreprocessing_CheckedChanged(object? sender, EventArgs e)
-    {
-        try
-        {
-            var keyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "key.json");
-            
-            if (!File.Exists(keyPath))
-            {
-                MessageBox.Show("配置文件不存在。", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                chkEnablePreprocessing.CheckedChanged -= ChkEnablePreprocessing_CheckedChanged;
-                chkEnablePreprocessing.Checked = false;
-                chkEnablePreprocessing.CheckedChanged += ChkEnablePreprocessing_CheckedChanged;
-                return;
-            }
-
-            var keyJson = File.ReadAllText(keyPath);
-            var keyData = Newtonsoft.Json.JsonConvert.DeserializeObject<KEY>(keyJson);
-            
-            if (keyData != null)
-            {
-                keyData.ENABLE_IMAGE_PREPROCESSING = chkEnablePreprocessing.Checked;
-                File.WriteAllText(keyPath, Newtonsoft.Json.JsonConvert.SerializeObject(keyData, Newtonsoft.Json.Formatting.Indented));
-                _logger.LogInformation("图像预处理设置已更新: {Enabled}", chkEnablePreprocessing.Checked);
-                MessageBox.Show($"图像预处理已{(chkEnablePreprocessing.Checked ? "启用" : "禁用")}。请重新启动应用程序以使更改生效。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "更新图像预处理设置时发生错误");
-            MessageBox.Show($"更新设置失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-    }
 }
 
 public class OCRField
@@ -495,4 +548,21 @@ public class OCRField
     public string Name { get; set; } = string.Empty;
     public string Value { get; set; } = string.Empty;
     public int Order { get; set; }
+}
+
+public class ComboBoxItem
+{
+    public string Text { get; set; }
+    public string Value { get; set; }
+    
+    public ComboBoxItem(string text, string value)
+    {
+        Text = text;
+        Value = value;
+    }
+    
+    public override string ToString()
+    {
+        return Text;
+    }
 }

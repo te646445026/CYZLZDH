@@ -4,5 +4,7 @@ public class KEY
 {
     public string API_KEY { get; set; }
     public string SECRET_KEY { get; set; }
-    public bool ENABLE_IMAGE_PREPROCESSING { get; set; } = false;
+    public string? BAIDU_API_KEY { get; set; }
+    public string? BAIDU_SECRET_KEY { get; set; }
+    public string? OCR_PROVIDER { get; set; }
 }
