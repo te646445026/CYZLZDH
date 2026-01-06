@@ -849,37 +849,84 @@ public class TencentOcrParser : IOcrParser
             // 提取日期信息
             try
             {
-                ObjsIndex("检验日期", objs, out indexj, out indexi, out isContain);
+                ObjsIndex("安装监检日期", objs, out indexj, out indexi, out isContain);
                 if (isContain)
                 {
-                    result.Date = objs["Response"]["TableDetections"][indexj]["Cells"][indexi]["Text"]
+                    string cellText = objs["Response"]["TableDetections"][indexj]["Cells"][indexi]["Text"]
                         .ToString().Replace("\n", "").Replace("\r", "");
                     
                     var datePattern = @"\d{4}年\d{1,2}[\u4e00-\u9fa5]\d{0,}日|\d{4}年\d{1,2}[\u4e00-\u9fa5]";
-                    var dateMatches = Regex.Matches(result.Date, datePattern);
+                    var dateMatches = Regex.Matches(cellText, datePattern);
+                    
                     if (dateMatches.Count > 0)
                     {
-                        if (dateMatches.Count >= 2)
-                        {
-                            result.Date = dateMatches[1].Value;
-                        }
-                        else
-                        {
-                            result.Date = dateMatches[0].Value;
-                        }
+                        // 情况1：同一单元格包含关键字和日期
+                        result.Date = dateMatches[0].Value;
                         var dateParts = Regex.Matches(result.Date, @"\d+");
                         if (dateParts.Count >= 3)
                         {
-                            int year = int.Parse(dateParts[0].Value);
-                            int month = int.Parse(dateParts[1].Value);
-                            int day = int.Parse(dateParts[2].Value);
                             result.Date = dateParts[0].Value + "年" + dateParts[1].Value + "月" + dateParts[2].Value + "日";
                         }
                     }
                     else
                     {
-                        result.Date = "   年   月   日";
+                        // 情况2：关键字和日期分开在相邻单元格
+                        // 尝试查找相邻单元格中的日期
+                        var cells = objs["Response"]["TableDetections"][indexj]["Cells"];
+                        string adjacentText = "";
+                        
+                        // 查找右侧相邻单元格
+                        if (indexi + 1 < cells.Count())
+                        {
+                            adjacentText = cells[indexi + 1]["Text"].ToString().Replace("\n", "").Replace("\r", "");
+                            dateMatches = Regex.Matches(adjacentText, datePattern);
+                            if (dateMatches.Count > 0)
+                            {
+                                result.Date = dateMatches[0].Value;
+                                var dateParts = Regex.Matches(result.Date, @"\d+");
+                                if (dateParts.Count >= 3)
+                                {
+                                    result.Date = dateParts[0].Value + "年" + dateParts[1].Value + "月" + dateParts[2].Value + "日";
+                                }
+                            }
+                        }
+                        
+                        // 如果右侧没找到，查找下方相邻单元格
+                        if (dateMatches.Count == 0)
+                        {
+                            int nextRowStart = indexi;
+                            var currentRow = int.Parse(cells[indexi]["RowIndex"].ToString());
+                            
+                            for (int i = indexi; i < cells.Count(); i++)
+                            {
+                                if (int.Parse(cells[i]["RowIndex"].ToString()) > currentRow)
+                                {
+                                    adjacentText = cells[i]["Text"].ToString().Replace("\n", "").Replace("\r", "");
+                                    dateMatches = Regex.Matches(adjacentText, datePattern);
+                                    if (dateMatches.Count > 0)
+                                    {
+                                        result.Date = dateMatches[0].Value;
+                                        var dateParts = Regex.Matches(result.Date, @"\d+");
+                                        if (dateParts.Count >= 3)
+                                        {
+                                            result.Date = dateParts[0].Value + "年" + dateParts[1].Value + "月" + dateParts[2].Value + "日";
+                                        }
+                                        break;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (dateMatches.Count == 0)
+                        {
+                            result.Date = "   年   月   日";
+                        }
                     }
+                }
+                else
+                {
+                    result.Date = "   年   月   日";
                 }
             }
             catch

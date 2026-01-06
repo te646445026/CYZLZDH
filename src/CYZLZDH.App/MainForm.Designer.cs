@@ -284,8 +284,8 @@ namespace CYZLZDH.App
             this.imageLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 80F));
             this.imageLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 100F));
             this.imageLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 80F));
-            this.imageLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 100F));
-            this.imageLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 100F));
+            this.imageLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.imageLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 80F));
             this.imageLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 60F));
             this.imageLayout.Controls.Add(this.lblOcrProvider, 0, 0);
             this.imageLayout.Controls.Add(this.cmbOcrProvider, 1, 0);
@@ -344,13 +344,13 @@ namespace CYZLZDH.App
             // 
             // lblCurrentImage
             // 
+            this.lblCurrentImage.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.lblCurrentImage.AutoSize = false;
             this.lblCurrentImage.Font = new System.Drawing.Font("微软雅黑", 9F);
             this.lblCurrentImage.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(73)))), ((int)(((byte)(94)))));
-            this.lblCurrentImage.Location = new System.Drawing.Point(100, 8);
-            this.lblCurrentImage.Margin = new System.Windows.Forms.Padding(3, 0, 3, 0);
+            this.lblCurrentImage.Location = new System.Drawing.Point(3, 8);
             this.lblCurrentImage.Name = "lblCurrentImage";
-            this.lblCurrentImage.Size = new System.Drawing.Size(600, 23);
+            this.lblCurrentImage.Size = new System.Drawing.Size(594, 23);
             this.lblCurrentImage.TabIndex = 1;
             this.lblCurrentImage.Text = "当前图片: 未选择";
             this.lblCurrentImage.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
