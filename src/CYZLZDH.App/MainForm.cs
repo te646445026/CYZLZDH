@@ -60,7 +60,6 @@ public partial class MainForm : Form
     {
         cmbOcrProvider.Items.Clear();
         cmbOcrProvider.Items.Add(new ComboBoxItem("腾讯云OCR", "tencent"));
-        cmbOcrProvider.Items.Add(new ComboBoxItem("百度AI OCR", "baidu"));
         
         string currentProvider = LoadOcrProviderFromConfig();
         int selectedIndex = 0;
@@ -232,7 +231,7 @@ public partial class MainForm : Form
         }
     }
 
-    private void BtnRecognize_Click(object? sender, EventArgs e)
+    private async void BtnRecognize_Click(object? sender, EventArgs e)
     {
         if (string.IsNullOrEmpty(_currentImagePath))
         {
@@ -250,7 +249,7 @@ public partial class MainForm : Form
 
             var imageBase64 = _base64Service.GetFileContentAsBase64(_currentImagePath);
             
-            var jsonResult = _ocrService.RecognizeTable(imageBase64);
+            var ocrResult = await _ocrService.RecognizeTableAndParseAsync(imageBase64).ConfigureAwait(true);
             
             var imageDir = Path.GetDirectoryName(_currentImagePath);
             var jsonDir = Path.Combine(imageDir ?? ".", "OCR_JSON");
@@ -263,13 +262,10 @@ public partial class MainForm : Form
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             var jsonFileName = $"OCR_{imageName}_{timestamp}.json";
             var jsonFilePath = Path.Combine(jsonDir, jsonFileName);
-            File.WriteAllText(jsonFilePath, jsonResult);
+            File.WriteAllText(jsonFilePath, ocrResult.RawJsonResult);
             
             _logger.LogInformation("OCR结果已保存: {JsonFilePath}", jsonFilePath);
-            
-            var ocrResult = _ocrService.RecognizeTableAndParse(imageBase64);
 
-            // 自动提取报告编号后7位
             if (!string.IsNullOrEmpty(ocrResult.ReportNum))
             {
                 var digits = new string(ocrResult.ReportNum.Where(char.IsDigit).ToArray());

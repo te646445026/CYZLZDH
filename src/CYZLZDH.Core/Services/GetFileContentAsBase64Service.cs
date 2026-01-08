@@ -25,7 +25,6 @@ public class GetFileContentAsBase64Service : IGetFileContentAsBase64Service
                 byte[] arr = new byte[filestream.Length];
                 filestream.Read(arr, 0, (int)filestream.Length);
                 string base64 = Convert.ToBase64String(arr);
-                base64 = "{\"ImageBase64\":\"data:image/png;base64," + base64 + "\"}";
                 
                 _logger.LogDebug("文件读取成功，大小: {Size} 字节", arr.Length);
                 return base64;

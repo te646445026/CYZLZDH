@@ -2,6 +2,7 @@ namespace CYZLZDH.Core.Models;
 
 public class OcrResult
 {
+    public string RawJsonResult { get; set; } = string.Empty;
     public string DeviceCode { get; set; } = string.Empty;      // 1. 设备代码
     public string Model { get; set; } = string.Empty;           // 2. 型号
     public string SerialNum { get; set; } = string.Empty;       // 3. 编号
