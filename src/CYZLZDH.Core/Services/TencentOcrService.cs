@@ -274,7 +274,8 @@ public class TencentOcrService : IOcrService
         var url = "https://" + host;
         var contentType = "application/json; charset=utf-8";
         var timestamp = ((int)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds).ToString();
-        var auth = GetAuth(secretId, secretKey, host, contentType, timestamp, body);
+        var jsonBody = "{\"ImageBase64\":\"" + body + "\"}";
+        var auth = GetAuth(secretId, secretKey, host, contentType, timestamp, jsonBody);
         var request = new HttpRequestMessage();
         request.Method = HttpMethod.Post;
         request.Headers.Add("Host", host);
@@ -286,7 +287,7 @@ public class TencentOcrService : IOcrService
         request.Headers.Add("X-TC-RequestClient", "SDK_NET_BAREBONE");
         request.Headers.TryAddWithoutValidation("Authorization", auth);
         request.RequestUri = new Uri(url);
-        request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+        request.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
         return request;
     }
 
