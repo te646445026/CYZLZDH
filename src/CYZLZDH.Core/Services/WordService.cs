@@ -76,20 +76,22 @@ public class WordService : IWordService
 
         var document = new Document(doc.FilePath);
 
-        // 特殊标记处理列表
-        var specialMarkers = new HashSet<int> { 13, 14, 15, 16 };
+        // 特殊标记处理列表 (需要替换整个单元格内容并设置格式)
+        // [13] 设备代码 - 固定值"符合要求"
+        // [14][15][16] - 固定值"/"
+        // [17][18][19] - OCR结果，需要特殊格式处理
+        var fixedValueMarkers = new HashSet<int> { 13, 14, 15, 16 };
+        var ocrSpecialMarkers = new HashSet<int> { 17, 18, 19 };
 
-        // 1. 先处理特殊标记（需要替换整个单元格内容）
+        // 1. 先处理固定值标记（需要替换整个单元格内容，并设置格式）
         foreach (var markerId in new[] { 13, 14, 15, 16 })
         {
-            // 构建标记字符串
             var halfWidth = $"[{markerId}]";
             var fullWidth = $"【{markerId}】";
             
-            // 确定替换值和格式
             string replaceValue;
             string fontName;
-            float fontSize = 12f; // 小四
+            float fontSize = 12f;
             HorizontalAlignment alignment;
 
             if (markerId == 13)
@@ -105,20 +107,35 @@ public class WordService : IWordService
                 alignment = HorizontalAlignment.Center;
             }
 
-            // 在文档中查找并替换包含这些标记的单元格
             ReplaceCellContent(document, halfWidth, replaceValue, fontName, fontSize, alignment);
             ReplaceCellContent(document, fullWidth, replaceValue, fontName, fontSize, alignment);
         }
 
-        // 2. 处理常规标记
+        // 2. 处理OCR特殊标记 [17][18][19]（使用普通替换保留原文档格式）
+        foreach (var markerId in new[] { 17, 18, 19 })
+        {
+            var key = $"[{markerId}]";
+            if (replacements.ContainsKey(key) && !string.IsNullOrEmpty(replacements[key]))
+            {
+                var value = replacements[key];
+                
+                var halfWidthPattern = $"[{markerId}]";
+                var fullWidthPattern = $"【{markerId}】";
+                
+                document.Replace(halfWidthPattern, value, false, false);
+                document.Replace(fullWidthPattern, value, false, false);
+            }
+        }
+
+        // 3. 处理常规标记
         foreach (var kvp in replacements)
         {
             try
             {
                 var markerNum = ExtractMarkerNumber(kvp.Key);
                 
-                // 跳过特殊标记，因为已经处理过了
-                if (specialMarkers.Contains(markerNum)) continue;
+                // 跳过已处理的标记
+                if (fixedValueMarkers.Contains(markerNum) || ocrSpecialMarkers.Contains(markerNum)) continue;
 
                 var value = kvp.Value ?? string.Empty;
 
@@ -439,5 +456,252 @@ public class WordService : IWordService
         }
         
         throw new ArgumentException($"无效的标记符ID: {markerId}");
+    }
+
+    public DocumentInfo CreateReportFromTemplate(string templatePath, string outputPath)
+    {
+        _logger.LogInformation("从模板创建报告: {Template} -> {Output}", templatePath, outputPath);
+
+        if (!File.Exists(templatePath))
+        {
+            throw new FileNotFoundException($"模板文件不存在: {templatePath}");
+        }
+
+        File.Copy(templatePath, outputPath, true);
+
+        var docInfo = new DocumentInfo
+        {
+            FilePath = outputPath,
+            FileName = Path.GetFileName(outputPath)
+        };
+
+        var document = new Document(outputPath);
+        docInfo.Title = GetDocumentTitle(document);
+        docInfo.Markers = FindAllMarkers(document);
+        document.Close();
+
+        _logger.LogInformation("报告创建成功，找到 {MarkerCount} 个标记", docInfo.Markers.Count);
+        return docInfo;
+    }
+
+    public Dictionary<int, string> ExtractDataFromOriginal(DocumentInfo sourceDoc, List<int> markerIds)
+    {
+        _logger.LogInformation("从原始记录提取数据，标记: {Markers}", string.Join(",", markerIds));
+
+        var result = new Dictionary<int, string>();
+        var document = new Document(sourceDoc.FilePath);
+
+        foreach (var markerId in markerIds)
+        {
+            var halfWidth = $"[{markerId}]";
+            var fullWidth = $"【{markerId}】";
+            string? extractedValue = null;
+
+            extractedValue = ExtractCellValueByMarker(document, halfWidth);
+            if (string.IsNullOrEmpty(extractedValue))
+            {
+                extractedValue = ExtractCellValueByMarker(document, fullWidth);
+            }
+
+            if (!string.IsNullOrEmpty(extractedValue))
+            {
+                result[markerId] = extractedValue;
+                _logger.LogDebug("提取标记 [{0}] 值: {1}", markerId, extractedValue);
+            }
+            else
+            {
+                _logger.LogWarning("未找到标记 [{0}] 的值", markerId);
+            }
+        }
+
+        document.Close();
+        return result;
+    }
+
+    private string? ExtractCellValueByMarker(Document document, string marker)
+    {
+        foreach (Section section in document.Sections)
+        {
+            foreach (DocumentObject obj in section.Body.ChildObjects)
+            {
+                if (obj.DocumentObjectType == DocumentObjectType.Table)
+                {
+                    var table = (Table)obj;
+                    foreach (TableRow row in table.Rows)
+                    {
+                        foreach (TableCell cell in row.Cells)
+                        {
+                            string cellText = GetCellText(cell);
+                            if (cellText.Contains(marker))
+                            {
+                                return cellText.Replace(marker, "").Trim();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    public void WriteDataToReport(DocumentInfo reportDoc, Dictionary<int, string> data, bool divideBy100 = false)
+    {
+        _logger.LogInformation("写入数据到报告，共 {Count} 条", data.Count);
+
+        var document = new Document(reportDoc.FilePath);
+        var replacements = new Dictionary<string, string>();
+
+        foreach (var kvp in data)
+        {
+            var value = kvp.Value;
+            if (divideBy100 && !string.IsNullOrEmpty(value) && double.TryParse(value, out double numValue))
+            {
+                value = (numValue / 100).ToString();
+                _logger.LogDebug("标记 [{0}] 除100后: {1}", kvp.Key, value);
+            }
+
+            var halfWidth = $"[{kvp.Key}]";
+            var fullWidth = $"【{kvp.Key}】";
+
+            replacements[halfWidth] = value;
+            replacements[fullWidth] = value;
+        }
+
+        foreach (var kvp in replacements)
+        {
+            document.Replace(kvp.Key, kvp.Value, false, false);
+        }
+
+        document.SaveToFile(reportDoc.FilePath);
+        document.Close();
+
+        _logger.LogInformation("数据写入完成");
+    }
+
+    public void CopyImageToReport(DocumentInfo sourceDoc, DocumentInfo reportDoc, int sourceImageIndex, int targetMarker)
+    {
+        _logger.LogInformation("复制图片从原始记录到报告，源索引: {Index}, 目标标记: [{Target}]", sourceImageIndex, targetMarker);
+
+        var sourceDocument = new Document(sourceDoc.FilePath);
+        var targetDocument = new Document(reportDoc.FilePath);
+
+        DocPicture? sourcePicture = null;
+        int pictureCount = 0;
+
+        foreach (Section section in sourceDocument.Sections)
+        {
+            foreach (DocumentObject obj in section.Body.ChildObjects)
+            {
+                if (obj.DocumentObjectType == DocumentObjectType.Table)
+                {
+                    var table = (Table)obj;
+                    foreach (TableRow row in table.Rows)
+                    {
+                        foreach (TableCell cell in row.Cells)
+                        {
+                            foreach (DocumentObject cellObj in cell.ChildObjects)
+                            {
+                                if (cellObj.DocumentObjectType == DocumentObjectType.Paragraph)
+                                {
+                                    var para = (Paragraph)cellObj;
+                                    foreach (DocumentObject paraObj in para.ChildObjects)
+                                    {
+                                        if (paraObj.DocumentObjectType == DocumentObjectType.Picture)
+                                        {
+                                            if (pictureCount == sourceImageIndex)
+                                            {
+                                                sourcePicture = (DocPicture)paraObj;
+                                                break;
+                                            }
+                                            pictureCount++;
+                                        }
+                                        if (sourcePicture != null) break;
+                                    }
+                                }
+                                if (sourcePicture != null) break;
+                            }
+                            if (sourcePicture != null) break;
+                        }
+                        if (sourcePicture != null) break;
+                    }
+                }
+                if (sourcePicture != null) break;
+            }
+        }
+
+        if (sourcePicture == null)
+        {
+            _logger.LogWarning("未找到索引为 {Index} 的图片", sourceImageIndex);
+            sourceDocument.Close();
+            targetDocument.Close();
+            return;
+        }
+
+        var halfWidth = $"[{targetMarker}]";
+        var fullWidth = $"【{targetMarker}】";
+
+        foreach (Section section in targetDocument.Sections)
+        {
+            foreach (DocumentObject obj in section.Body.ChildObjects)
+            {
+                if (obj.DocumentObjectType == DocumentObjectType.Table)
+                {
+                    var table = (Table)obj;
+                    foreach (TableRow row in table.Rows)
+                    {
+                        foreach (TableCell cell in row.Cells)
+                        {
+                            string cellText = GetCellText(cell);
+                            if (cellText.Contains(halfWidth) || cellText.Contains(fullWidth))
+                            {
+                                cell.Paragraphs.Clear();
+                                var para = cell.AddParagraph();
+                                var newPicture = (DocPicture)sourcePicture.Clone();
+                                para.ChildObjects.Add(newPicture);
+                                _logger.LogInformation("图片已复制到标记 [{0}]", targetMarker);
+                                sourceDocument.Close();
+                                targetDocument.SaveToFile(reportDoc.FilePath);
+                                targetDocument.Close();
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        sourceDocument.Close();
+        targetDocument.Close();
+        _logger.LogWarning("未找到目标标记 [{0}]", targetMarker);
+    }
+
+    public void ClearAllMarkers(DocumentInfo doc, List<int>? markerIds = null)
+    {
+        _logger.LogInformation("清除文档中的所有占位符");
+
+        if (markerIds == null)
+        {
+            markerIds = new List<int>();
+            for (int i = 1; i <= 50; i++)
+            {
+                markerIds.Add(i);
+            }
+        }
+
+        var document = new Document(doc.FilePath);
+
+        foreach (var markerId in markerIds)
+        {
+            var halfWidth = $"[{markerId}]";
+            var fullWidth = $"【{markerId}】";
+
+            document.Replace(halfWidth, "", false, false);
+            document.Replace(fullWidth, "", false, false);
+        }
+
+        document.SaveToFile(doc.FilePath);
+        document.Close();
+
+        _logger.LogInformation("占位符清除完成");
     }
 }

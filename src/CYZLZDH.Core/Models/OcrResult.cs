@@ -18,4 +18,6 @@ public class OcrResult
     public string JianyanOrjiance { get; set; } = string.Empty; // 12. 检验类型
     public string LayerStationDoor { get; set; } = string.Empty; // 层站门数
     public string DeviceType { get; set; } = string.Empty;       // 设备品种
+    public string ManufacturingDate { get; set; } = string.Empty; // 制造日期
+    public string ControlMethod { get; set; } = string.Empty;     // 控制方式
 }

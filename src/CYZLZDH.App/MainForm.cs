@@ -22,16 +22,19 @@ public partial class MainForm : Form
     private readonly ILogger<MainForm> _logger;
 
     private DocumentInfo? _originalDocInfo;
-    private DocumentInfo? _reportDocInfo;
+    private DocumentInfo? _newReportInfo;
     private string _currentImagePath = string.Empty;
     private List<OCRField> _ocrFields = new();
     private bool _isInitializing = true;
+
+    private const string TEMPLATE_FILE_NAME = "乘运质量报告新模板.docx";
 
     private readonly string[] FieldDescriptions = new[]
     {
         "报告编号", "使用单位", "施工单位", "检验日期",
         "设备使用地点", "设备品种", "型号", "制造单位",
-        "额定载重量", "产品编号", "层站门数", "额定速度", "设备代码"
+        "额定载重量", "产品编号", "层站门数", "额定速度",
+        "制造日期", "控制方式", "维护保养单位"
     };
 
     public MainForm(
@@ -184,37 +187,6 @@ public partial class MainForm : Form
         }
     }
 
-    private void BtnReportDoc_Click(object? sender, EventArgs e)
-    {
-        using var dialog = new OpenFileDialog();
-        dialog.Filter = "Word文档|*.docx;*.doc";
-        dialog.Title = "选择测试报告文档";
-
-        if (dialog.ShowDialog() == DialogResult.OK)
-        {
-            try
-            {
-                var fileName = Path.GetFileName(dialog.FileName);
-                if (!fileName.Contains("测试报告"))
-                {
-                    _logger.LogWarning("用户选择了不包含\"测试报告\"的文档: {FileName}", fileName);
-                    MessageBox.Show("请选择包含\"测试报告\"字样的文档！", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-
-                txtReportDoc.Text = dialog.FileName;
-                _reportDocInfo = _wordService.LoadDocument(dialog.FileName);
-                
-                _logger.LogInformation("测试报告文档加载成功: {FileName}", fileName);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "加载测试报告文档失败: {FileName}", dialog.FileName);
-                MessageBox.Show($"加载文档失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-    }
-
     private void BtnSelectImage_Click(object? sender, EventArgs e)
     {
         using var dialog = new OpenFileDialog();
@@ -297,9 +269,9 @@ public partial class MainForm : Form
 
     private void BtnProcess_Click(object? sender, EventArgs e)
     {
-        if (_originalDocInfo == null || _reportDocInfo == null)
+        if (_originalDocInfo == null)
         {
-            MessageBox.Show("请先加载文档！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show("请先加载原始记录！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 
@@ -327,6 +299,83 @@ public partial class MainForm : Form
             // 确保报告编号是7位
             reportNumber = reportNumber.PadLeft(7, '0');
 
+            // ========== 步骤1: 从原始记录提取数据 ==========
+            _logger.LogInformation("步骤1: 从原始记录提取数据");
+
+            // 【20】- 【29】除100
+            var markerIdsDivide100 = new List<int>();
+            for (int i = 20; i <= 29; i++) markerIdsDivide100.Add(i);
+            for (int i = 32; i <= 41; i++) markerIdsDivide100.Add(i);
+            var extractedDataDivide100 = _wordService.ExtractDataFromOriginal(_originalDocInfo, markerIdsDivide100);
+
+            // 【30】【31】【42】【43】保持原值
+            var markerIdsKeep = new List<int> { 30, 31, 42, 43 };
+            var extractedDataKeep = _wordService.ExtractDataFromOriginal(_originalDocInfo, markerIdsKeep);
+
+            // 合并数据
+            var extractedData = new Dictionary<int, string>();
+            foreach (var kvp in extractedDataDivide100) extractedData[kvp.Key] = kvp.Value;
+            foreach (var kvp in extractedDataKeep) extractedData[kvp.Key] = kvp.Value;
+
+            // ========== 步骤2: 从模板创建新报告 ==========
+            _logger.LogInformation("步骤2: 从模板创建新报告");
+
+            var templatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "template", TEMPLATE_FILE_NAME);
+            if (!File.Exists(templatePath))
+            {
+                MessageBox.Show($"模板文件不存在: {templatePath}\n请将模板文件放到 template 文件夹下", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            var originalDir = Path.GetDirectoryName(_originalDocInfo.FilePath) ?? AppDomain.CurrentDomain.BaseDirectory;
+            var newReportName = $"BTE-JC{reportNumber}{Path.GetExtension(templatePath)}";
+            var newReportPath = Path.Combine(originalDir, newReportName);
+
+            if (File.Exists(newReportPath))
+            {
+                var result = MessageBox.Show($"文件 {newReportName} 已存在，是否覆盖？", "确认", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (result == DialogResult.No) return;
+                File.Delete(newReportPath);
+            }
+
+            _newReportInfo = _wordService.CreateReportFromTemplate(templatePath, newReportPath);
+
+            // ========== 步骤3: 写入提取的数据到新报告 ==========
+            _logger.LogInformation("步骤3: 写入提取的数据到新报告");
+
+            // 【20】-【29】【32】-【41】除100写入
+            var dataToDivide = new Dictionary<int, string>();
+            foreach (var kvp in extractedDataDivide100)
+            {
+                dataToDivide[kvp.Key] = kvp.Value;
+            }
+            if (dataToDivide.Count > 0)
+            {
+                _wordService.WriteDataToReport(_newReportInfo, dataToDivide, true);
+            }
+
+            // 【30】【31】【42】【43】保持原值写入
+            var dataToKeep = new Dictionary<int, string>();
+            foreach (var kvp in extractedDataKeep)
+            {
+                dataToKeep[kvp.Key] = kvp.Value;
+            }
+            if (dataToKeep.Count > 0)
+            {
+                _wordService.WriteDataToReport(_newReportInfo, dataToKeep, false);
+            }
+
+            // ========== 步骤4: 复制图片到新报告 ==========
+            _logger.LogInformation("步骤4: 复制图片到新报告");
+
+            // 图片1 -> 【44】
+            _wordService.CopyImageToReport(_originalDocInfo, _newReportInfo, 0, 44);
+            // 图片2 -> 【45】
+            _wordService.CopyImageToReport(_originalDocInfo, _newReportInfo, 1, 45);
+
+            // ========== 步骤5: 写入OCR结果到原始记录 ==========
+            _logger.LogInformation("步骤5: 写入OCR结果到原始记录");
+
             var replacements = new Dictionary<string, string>();
 
             // 构建替换字典
@@ -337,18 +386,60 @@ public partial class MainForm : Form
                 var markerId = row.Cells[0].Value?.ToString();
                 var value = row.Cells[2].Value?.ToString();
 
-                if (!string.IsNullOrEmpty(markerId) && value != null && markerId != "[13]")
+                if (!string.IsNullOrEmpty(markerId) && value != null)
                 {
                     replacements[markerId] = value;
                 }
             }
 
-            // --- 重命名逻辑 ---
-            
-            // 原始记录文档重命名
-            var originalDir = Path.GetDirectoryName(_originalDocInfo.FilePath);
-            if (string.IsNullOrEmpty(originalDir)) originalDir = AppDomain.CurrentDomain.BaseDirectory;
-            
+            // 写入原始记录
+            if (replacements.Count > 0)
+            {
+                _wordService.ReplaceMarkers(_originalDocInfo, replacements);
+            }
+
+            // ========== 步骤6: 写入OCR结果到新报告 ==========
+            _logger.LogInformation("步骤6: 写入OCR结果到新报告");
+
+            // 【1】-【12】写入新报告
+            var reportReplacements = new Dictionary<string, string>();
+            for (int i = 1; i <= 12; i++)
+            {
+                var key = $"[{i}]";
+                if (replacements.ContainsKey(key))
+                {
+                    reportReplacements[key] = replacements[key];
+                }
+            }
+
+            // 【17】-【19】OCR结果写入新报告
+            for (int i = 17; i <= 19; i++)
+            {
+                var key = $"[{i}]";
+                if (replacements.ContainsKey(key))
+                {
+                    reportReplacements[key] = replacements[key];
+                }
+            }
+
+            if (reportReplacements.Count > 0)
+            {
+                _wordService.ReplaceMarkers(_newReportInfo, reportReplacements);
+            }
+
+            // ========== 步骤7: 清除所有占位符 ==========
+            _logger.LogInformation("步骤7: 清除所有占位符");
+
+            var allMarkers = new List<int>();
+            for (int i = 1; i <= 45; i++) allMarkers.Add(i);
+
+            _wordService.ClearAllMarkers(_originalDocInfo, allMarkers);
+            _wordService.ClearAllMarkers(_newReportInfo, allMarkers);
+
+            // ========== 步骤8: 重命名文档 ==========
+            _logger.LogInformation("步骤8: 重命名文档");
+
+            // 原始记录重命名
             var newOriginalName = $"RTE-JC{reportNumber}{Path.GetExtension(_originalDocInfo.FilePath)}";
             var newOriginalPath = Path.Combine(originalDir, newOriginalName);
 
@@ -356,59 +447,27 @@ public partial class MainForm : Form
             {
                 if (File.Exists(newOriginalPath))
                 {
-                    // 如果目标文件已存在，询问是否覆盖
-                    var result = MessageBox.Show($"文件 {newOriginalName} 已存在，是否覆盖？", "确认", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    if (result == DialogResult.No) return;
                     File.Delete(newOriginalPath);
                 }
                 
                 File.Move(_originalDocInfo.FilePath, newOriginalPath);
-                
-                // 更新文档信息和UI
                 _originalDocInfo = _wordService.LoadDocument(newOriginalPath);
                 txtOriginalDoc.Text = newOriginalPath;
             }
 
-            // 测试报告文档重命名
-            var reportDir = Path.GetDirectoryName(_reportDocInfo.FilePath);
-            if (string.IsNullOrEmpty(reportDir)) reportDir = AppDomain.CurrentDomain.BaseDirectory;
-
-            var newReportName = $"BTE-JC{reportNumber}{Path.GetExtension(_reportDocInfo.FilePath)}";
-            var newReportPath = Path.Combine(reportDir, newReportName);
-
-            if (!string.Equals(_reportDocInfo.FilePath, newReportPath, StringComparison.OrdinalIgnoreCase))
-            {
-                if (File.Exists(newReportPath))
-                {
-                    var result = MessageBox.Show($"文件 {newReportName} 已存在，是否覆盖？", "确认", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    if (result == DialogResult.No) return;
-                    File.Delete(newReportPath);
-                }
-
-                File.Move(_reportDocInfo.FilePath, newReportPath);
-
-                // 更新文档信息和UI
-                _reportDocInfo = _wordService.LoadDocument(newReportPath);
-                txtReportDoc.Text = newReportPath;
-            }
-
-            // --- 替换逻辑 ---
-
-            // 批量替换并保存
-            if (replacements.Count > 0)
-            {
-                _wordService.ReplaceMarkers(_originalDocInfo, replacements);
-                _wordService.ReplaceMarkers(_reportDocInfo, replacements);
-            }
+            // 新报告已经在创建时命名好了
+            txtReportDoc.Text = _newReportInfo.FilePath;
 
             // 替换标题
             _wordService.ReplaceTitle(_originalDocInfo, $"RTE-JC{reportNumber}");
-            _wordService.ReplaceTitle(_reportDocInfo, $"BTE-JC{reportNumber}");
+            _wordService.ReplaceTitle(_newReportInfo, $"BTE-JC{reportNumber}");
 
-            // 裁剪图片 (保留高度比例 535/727 ≈ 0.7359)
+            // ========== 步骤9: 裁剪图片 ==========
+            _logger.LogInformation("步骤9: 裁剪图片");
+
             float keepRatio = 535f / 727f;
             _wordService.CropImages(_originalDocInfo, keepRatio);
-            _wordService.CropImages(_reportDocInfo, keepRatio);
+            _wordService.CropImages(_newReportInfo, keepRatio);
 
             MessageBox.Show($"处理完成！\n文件已重命名并更新：\n{newOriginalPath}\n{newReportPath}", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
@@ -426,7 +485,7 @@ public partial class MainForm : Form
         txtOriginalDoc.Text = string.Empty;
         txtReportDoc.Text = string.Empty;
         _originalDocInfo = null;
-        _reportDocInfo = null;
+        _newReportInfo = null;
 
         // 清空图片和OCR结果
         _currentImagePath = string.Empty;
@@ -490,11 +549,19 @@ public partial class MainForm : Form
 
         gridMapping.Rows.Clear();
 
-        for (int i = 1; i <= 13; i++)
+        // 定义标记映射: index -> marker
+        // [1]-[12]: 正常映射
+        // [14]-[16]: 固定值，不显示
+        // [17]: 制造日期
+        // [18]: 控制方式
+        // [19]: 维护保养单位
+        int[] markers = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 17, 18, 19 };
+
+        for (int i = 0; i < markers.Length; i++)
         {
-            var marker = $"[{i}]";
-            var fieldName = FieldDescriptions[i - 1];
-            var value = i <= _ocrFields.Count ? _ocrFields[i - 1].Value : "";
+            var marker = $"[{markers[i]}]";
+            var fieldName = FieldDescriptions[i];
+            var value = i < _ocrFields.Count ? _ocrFields[i].Value : "";
             
             gridMapping.Rows.Add(marker, fieldName, value);
         }
@@ -504,6 +571,7 @@ public partial class MainForm : Form
     {
         _ocrFields.Clear();
 
+        // [1]-[12]: OCR识别结果
         _ocrFields.Add(new OCRField { Name = "报告编号", Value = result.ReportNum, Order = 1 });
         _ocrFields.Add(new OCRField { Name = "使用单位", Value = result.UserName, Order = 2 });
         _ocrFields.Add(new OCRField { Name = "施工单位", Value = result.ConstructionUnit, Order = 3 });
@@ -516,7 +584,13 @@ public partial class MainForm : Form
         _ocrFields.Add(new OCRField { Name = "产品编号", Value = result.SerialNum, Order = 10 });
         _ocrFields.Add(new OCRField { Name = "层站门数", Value = result.LayerStationDoor, Order = 11 });
         _ocrFields.Add(new OCRField { Name = "额定速度", Value = result.Speed, Order = 12 });
-        _ocrFields.Add(new OCRField { Name = "设备代码", Value = result.DeviceCode, Order = 13 });
+
+        // [17]: 制造日期
+        _ocrFields.Add(new OCRField { Name = "制造日期", Value = result.ManufacturingDate, Order = 17 });
+        // [18]: 控制方式
+        _ocrFields.Add(new OCRField { Name = "控制方式", Value = result.ControlMethod, Order = 18 });
+        // [19]: 维护保养单位
+        _ocrFields.Add(new OCRField { Name = "维护保养单位", Value = result.MaintenanceUnit, Order = 19 });
     }
 
     private string FormatOcrResult()

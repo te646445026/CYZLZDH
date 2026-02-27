@@ -15,7 +15,6 @@ namespace CYZLZDH.App
         private Button btnOriginalDoc;
         private Label lblReport;
         private TextBox txtReportDoc;
-        private Button btnReportDoc;
         private GroupBox imageGroup;
         private TableLayoutPanel imageLayout;
         private Button btnSelectImage;
@@ -62,7 +61,6 @@ namespace CYZLZDH.App
             this.btnOriginalDoc = new System.Windows.Forms.Button();
             this.lblReport = new System.Windows.Forms.Label();
             this.txtReportDoc = new System.Windows.Forms.TextBox();
-            this.btnReportDoc = new System.Windows.Forms.Button();
             this.imageGroup = new System.Windows.Forms.GroupBox();
             this.imageLayout = new System.Windows.Forms.TableLayoutPanel();
             this.btnSelectImage = new System.Windows.Forms.Button();
@@ -171,7 +169,6 @@ namespace CYZLZDH.App
             this.docLayout.Controls.Add(this.btnOriginalDoc, 2, 0);
             this.docLayout.Controls.Add(this.lblReport, 0, 1);
             this.docLayout.Controls.Add(this.txtReportDoc, 1, 1);
-            this.docLayout.Controls.Add(this.btnReportDoc, 2, 1);
             this.docLayout.Dock = System.Windows.Forms.DockStyle.Fill;
             this.docLayout.Location = new System.Drawing.Point(10, 24);
             this.docLayout.Name = "docLayout";
@@ -202,7 +199,7 @@ namespace CYZLZDH.App
             this.txtOriginalDoc.Location = new System.Drawing.Point(95, 7);
             this.txtOriginalDoc.Name = "txtOriginalDoc";
             this.txtOriginalDoc.ReadOnly = true;
-            this.txtOriginalDoc.Size = new System.Drawing.Size(36, 23);
+            this.txtOriginalDoc.Size = new System.Drawing.Size(705, 23);
             this.txtOriginalDoc.TabIndex = 1;
             // 
             // btnOriginalDoc
@@ -214,7 +211,7 @@ namespace CYZLZDH.App
             this.btnOriginalDoc.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnOriginalDoc.Font = new System.Drawing.Font("微软雅黑", 9F);
             this.btnOriginalDoc.ForeColor = System.Drawing.Color.White;
-            this.btnOriginalDoc.Location = new System.Drawing.Point(139, 4);
+            this.btnOriginalDoc.Location = new System.Drawing.Point(795, 4);
             this.btnOriginalDoc.Name = "btnOriginalDoc";
             this.btnOriginalDoc.Size = new System.Drawing.Size(80, 29);
             this.btnOriginalDoc.TabIndex = 2;
@@ -243,25 +240,8 @@ namespace CYZLZDH.App
             this.txtReportDoc.Location = new System.Drawing.Point(95, 44);
             this.txtReportDoc.Name = "txtReportDoc";
             this.txtReportDoc.ReadOnly = true;
-            this.txtReportDoc.Size = new System.Drawing.Size(36, 23);
+            this.txtReportDoc.Size = new System.Drawing.Size(705, 23);
             this.txtReportDoc.TabIndex = 4;
-            // 
-            // btnReportDoc
-            // 
-            this.btnReportDoc.Anchor = System.Windows.Forms.AnchorStyles.Left;
-            this.btnReportDoc.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(152)))), ((int)(((byte)(219)))));
-            this.btnReportDoc.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnReportDoc.FlatAppearance.BorderSize = 0;
-            this.btnReportDoc.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnReportDoc.Font = new System.Drawing.Font("微软雅黑", 9F);
-            this.btnReportDoc.ForeColor = System.Drawing.Color.White;
-            this.btnReportDoc.Location = new System.Drawing.Point(139, 41);
-            this.btnReportDoc.Name = "btnReportDoc";
-            this.btnReportDoc.Size = new System.Drawing.Size(80, 29);
-            this.btnReportDoc.TabIndex = 5;
-            this.btnReportDoc.Text = "浏览...";
-            this.btnReportDoc.UseVisualStyleBackColor = false;
-            this.btnReportDoc.Click += new System.EventHandler(this.BtnReportDoc_Click);
             // 
             // imageGroup
             // 

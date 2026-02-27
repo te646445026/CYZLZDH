@@ -248,6 +248,46 @@ public class TencentOcrParser : IOcrParser
                 result.SerialNum = "/";
             }
 
+            // 提取制造日期
+            try
+            {
+                ObjsIndex("制造日期", objs, out indexj, out indexi, out isContain);
+                if (isContain)
+                {
+                    string manufacturingDateText = objs["Response"]["TableDetections"][indexj]["Cells"][indexi + 1]["Text"]
+                        .ToString().Replace("\n", "").Replace("\r", "");
+                    result.ManufacturingDate = manufacturingDateText;
+                }
+                else
+                {
+                    result.ManufacturingDate = "/";
+                }
+            }
+            catch
+            {
+                result.ManufacturingDate = "/";
+            }
+
+            // 提取控制方式
+            try
+            {
+                ObjsIndex("控制方式", objs, out indexj, out indexi, out isContain);
+                if (isContain)
+                {
+                    string controlMethodText = objs["Response"]["TableDetections"][indexj]["Cells"][indexi + 1]["Text"]
+                        .ToString().Replace("\n", "").Replace("\r", "");
+                    result.ControlMethod = controlMethodText;
+                }
+                else
+                {
+                    result.ControlMethod = "/";
+                }
+            }
+            catch
+            {
+                result.ControlMethod = "/";
+            }
+
             // 提取制造单位名称
             try
             {
@@ -333,12 +373,13 @@ public class TencentOcrParser : IOcrParser
                 ObjsIndex("额定速度", objs, out indexj, out indexi, out isContain);
                 if (isContain)
                 {
-                    result.Speed = objs["Response"]["TableDetections"][indexj]["Cells"][indexi + 1]["Text"]
+                    string speedText = objs["Response"]["TableDetections"][indexj]["Cells"][indexi + 1]["Text"]
                         .ToString().Replace("\n", "").Replace("\r", "");
-                    var speedMatches = Regex.Matches(result.Speed, @"(\d+(\.\d+)?)");
+                    
+                    var speedMatches = Regex.Matches(speedText, @"(\d+(\.\d+)?)");
                     if (speedMatches.Count > 0)
                     {
-                        result.Speed = speedMatches[0].ToString();
+                        result.Speed = speedMatches[0].ToString() + "m/s";
                     }
                     else
                     {
