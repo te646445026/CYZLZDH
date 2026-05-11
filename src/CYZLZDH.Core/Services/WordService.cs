@@ -656,7 +656,36 @@ public class WordService : IWordService
                             {
                                 cell.Paragraphs.Clear();
                                 var para = cell.AddParagraph();
+                                para.Format.HorizontalAlignment = HorizontalAlignment.Center;
                                 var newPicture = (DocPicture)sourcePicture.Clone();
+                                
+                                float cellWidth = cell.Width;
+                                float originalWidth = sourcePicture.Width;
+                                float originalHeight = sourcePicture.Height;
+                                
+                                if (cellWidth > 0 && originalWidth > 0 && originalHeight > 0)
+                                {
+                                    float maxWidth = cellWidth - 10f;
+                                    if (maxWidth < 50f) maxWidth = 200f;
+                                    
+                                    float scale = maxWidth / originalWidth;
+                                    float newWidth = originalWidth * scale;
+                                    float newHeight = originalHeight * scale;
+                                    
+                                    if (newHeight > 300f)
+                                    {
+                                        float heightScale = 300f / newHeight;
+                                        newWidth *= heightScale;
+                                        newHeight = 300f;
+                                    }
+                                    
+                                    newPicture.Width = newWidth;
+                                    newPicture.Height = newHeight;
+                                    
+                                    _logger.LogInformation("图片尺寸调整: 原始({0}x{1}) -> 调整后({2}x{3})", 
+                                        originalWidth, originalHeight, newWidth, newHeight);
+                                }
+                                
                                 para.ChildObjects.Add(newPicture);
                                 _logger.LogInformation("图片已复制到标记 [{0}]", targetMarker);
                                 sourceDocument.Close();
