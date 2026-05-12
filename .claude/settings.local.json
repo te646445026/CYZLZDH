@@ -3,7 +3,16 @@
     "allow": [
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git *)",
+      "Bash(dotnet build *)",
+      "Bash(unzip -l \"template/乘运质量报告新模板.docx\")",
+      "Bash(unzip -p \"template/乘运质量报告新模板.docx\" word/document.xml)",
+      "Read(//tmp/**)",
+      "Bash(dotnet add *)",
+      "Bash(dotnet run *)",
+      "Bash(sed -i 's/int colCount = 0;.*catch { colCount = table.Rows\\\\[0\\\\].Cells.Count; }/int colCount = 0;/' Program.cs)",
+      "Bash(sed -i 's/\" rows x \" + colCount + \" cols\"/\" rows\"/' Program.cs)"
     ]
   }
 }

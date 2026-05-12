@@ -13,8 +13,6 @@ namespace CYZLZDH.App
         private Label lblOriginal;
         private TextBox txtOriginalDoc;
         private Button btnOriginalDoc;
-        private Label lblReport;
-        private TextBox txtReportDoc;
         private GroupBox imageGroup;
         private TableLayoutPanel imageLayout;
         private Button btnSelectImage;
@@ -59,8 +57,6 @@ namespace CYZLZDH.App
             this.lblOriginal = new System.Windows.Forms.Label();
             this.txtOriginalDoc = new System.Windows.Forms.TextBox();
             this.btnOriginalDoc = new System.Windows.Forms.Button();
-            this.lblReport = new System.Windows.Forms.Label();
-            this.txtReportDoc = new System.Windows.Forms.TextBox();
             this.imageGroup = new System.Windows.Forms.GroupBox();
             this.imageLayout = new System.Windows.Forms.TableLayoutPanel();
             this.btnSelectImage = new System.Windows.Forms.Button();
@@ -167,14 +163,11 @@ namespace CYZLZDH.App
             this.docLayout.Controls.Add(this.lblOriginal, 0, 0);
             this.docLayout.Controls.Add(this.txtOriginalDoc, 1, 0);
             this.docLayout.Controls.Add(this.btnOriginalDoc, 2, 0);
-            this.docLayout.Controls.Add(this.lblReport, 0, 1);
-            this.docLayout.Controls.Add(this.txtReportDoc, 1, 1);
             this.docLayout.Dock = System.Windows.Forms.DockStyle.Fill;
             this.docLayout.Location = new System.Drawing.Point(10, 24);
             this.docLayout.Name = "docLayout";
-            this.docLayout.RowCount = 2;
-            this.docLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.docLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
+            this.docLayout.RowCount = 1;
+            this.docLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.docLayout.Size = new System.Drawing.Size(880, 61);
             this.docLayout.TabIndex = 0;
             // 
@@ -188,7 +181,7 @@ namespace CYZLZDH.App
             this.lblOriginal.Name = "lblOriginal";
             this.lblOriginal.Size = new System.Drawing.Size(59, 17);
             this.lblOriginal.TabIndex = 0;
-            this.lblOriginal.Text = "原始记录:";
+            this.lblOriginal.Text = "报告文档:";
             // 
             // txtOriginalDoc
             // 
@@ -217,32 +210,8 @@ namespace CYZLZDH.App
             this.btnOriginalDoc.TabIndex = 2;
             this.btnOriginalDoc.Text = "浏览...";
             this.btnOriginalDoc.UseVisualStyleBackColor = false;
-            this.btnOriginalDoc.Click += new System.EventHandler(this.BtnOriginalDoc_Click);
-            // 
-            // lblReport
-            // 
-            this.lblReport.Anchor = System.Windows.Forms.AnchorStyles.Right;
-            this.lblReport.AutoSize = true;
-            this.lblReport.Font = new System.Drawing.Font("微软雅黑", 9F);
-            this.lblReport.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(73)))), ((int)(((byte)(94)))));
-            this.lblReport.Location = new System.Drawing.Point(28, 47);
-            this.lblReport.Name = "lblReport";
-            this.lblReport.Size = new System.Drawing.Size(59, 17);
-            this.lblReport.TabIndex = 3;
-            this.lblReport.Text = "测试报告:";
-            // 
-            // txtReportDoc
-            // 
-            this.txtReportDoc.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtReportDoc.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
-            this.txtReportDoc.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.txtReportDoc.Font = new System.Drawing.Font("微软雅黑", 9F);
-            this.txtReportDoc.Location = new System.Drawing.Point(95, 44);
-            this.txtReportDoc.Name = "txtReportDoc";
-            this.txtReportDoc.ReadOnly = true;
-            this.txtReportDoc.Size = new System.Drawing.Size(705, 23);
-            this.txtReportDoc.TabIndex = 4;
-            // 
+            this.btnOriginalDoc.Click += new System.EventHandler(this.BtnReportDoc_Click);
+            //
             // imageGroup
             // 
             this.imageGroup.BackColor = System.Drawing.Color.White;

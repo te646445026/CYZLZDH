@@ -17,4 +17,5 @@ public interface IWordService
     void WriteDataToReport(DocumentInfo reportDoc, Dictionary<int, string> data, bool divideBy100 = false);
     void CopyImageToReport(DocumentInfo sourceDoc, DocumentInfo reportDoc, int sourceImageIndex, int targetMarker);
     void ClearAllMarkers(DocumentInfo doc, List<int>? markerIds = null);
+    void ConvertReportToRecord(DocumentInfo reportDoc, string recordPath);
 }

@@ -733,4 +733,186 @@ public class WordService : IWordService
 
         _logger.LogInformation("占位符清除完成");
     }
+
+    public void ConvertReportToRecord(DocumentInfo reportDoc, string recordPath)
+    {
+        _logger.LogInformation("开始将报告转换为记录: {ReportPath} -> {RecordPath}", reportDoc.FilePath, recordPath);
+
+        var document = new Document(reportDoc.FilePath);
+
+        // 1. 删除前两页（删除前2个Section，对应封面和注意事项）
+        int sectionsToRemove = Math.Min(2, document.Sections.Count);
+        for (int i = 0; i < sectionsToRemove; i++)
+        {
+            document.Sections.RemoveAt(0);
+        }
+        _logger.LogInformation("已删除前 {Count} 页（Section）", sectionsToRemove);
+
+        // 2. 替换"报告"相关文字为"记录"
+        document.Replace("电梯乘运质量检测报告", "电梯乘运质量检测记录", false, false);
+        document.Replace("报告编号", "记录编号", false, false);
+        _logger.LogInformation("已将'报告'替换为'记录'");
+
+        // 3. 删除"编制""审核""批准"行及盖章栏
+        foreach (Section section in document.Sections)
+        {
+            foreach (DocumentObject obj in section.Body.ChildObjects)
+            {
+                if (obj is Table table)
+                {
+                    var rowsToRemove = new List<TableRow>();
+                    foreach (TableRow row in table.Rows)
+                    {
+                        string rowText = "";
+                        foreach (TableCell cell in row.Cells)
+                        {
+                            foreach (Paragraph p in cell.Paragraphs)
+                            {
+                                rowText += p.Text;
+                            }
+                        }
+
+                        if (rowText.Contains("编制") || rowText.Contains("审核") || rowText.Contains("批准"))
+                        {
+                            rowsToRemove.Add(row);
+                        }
+                    }
+
+                    foreach (var row in rowsToRemove)
+                    {
+                        table.Rows.Remove(row);
+                    }
+
+                    if (rowsToRemove.Count > 0)
+                    {
+                        _logger.LogInformation("已删除 {Count} 行（编制/审核/批准/盖章栏）", rowsToRemove.Count);
+                    }
+                }
+            }
+        }
+
+        // 4. 统一处理所有"附页"段落：设置分页符 + 统一标题格式
+        ApplyFormatToAllFuyeParagraphs(document);
+
+        document.SaveToFile(recordPath);
+        document.Close();
+
+        _logger.LogInformation("报告转记录完成: {RecordPath}", recordPath);
+    }
+
+    private void ApplyFormatToAllFuyeParagraphs(Document document)
+    {
+        // 获取第一页标题段落及其格式
+        Paragraph? titlePara = null;
+        if (document.Sections.Count > 0)
+        {
+            var firstSection = document.Sections[0];
+            if (firstSection.Body.ChildObjects.Count > 0)
+            {
+                titlePara = firstSection.Body.ChildObjects[0] as Paragraph;
+            }
+        }
+
+        string? titleFontName = null;
+        float titleFontSize = 12f;
+        bool titleBold = false;
+        System.Drawing.Color? titleColor = null;
+        var titleAlignment = HorizontalAlignment.Center;
+
+        if (titlePara != null)
+        {
+            foreach (DocumentObject obj in titlePara.ChildObjects)
+            {
+                if (obj is TextRange tr)
+                {
+                    titleFontName = tr.CharacterFormat.FontName;
+                    titleFontSize = tr.CharacterFormat.FontSize;
+                    titleBold = tr.CharacterFormat.Bold;
+                    titleColor = tr.CharacterFormat.TextColor;
+                    break;
+                }
+            }
+            titleAlignment = titlePara.Format.HorizontalAlignment;
+        }
+
+        if (string.IsNullOrEmpty(titleFontName))
+        {
+            _logger.LogWarning("无法获取第一页标题的字体格式，使用默认格式");
+            titleFontName = "宋体";
+        }
+
+        _logger.LogInformation("第一页标题格式: 字体={Font}, 大小={Size}, 加粗={Bold}, 对齐={Align}",
+            titleFontName, titleFontSize, titleBold, titleAlignment);
+
+        int fuyeWithPageBreak = 0;
+        int fuyeCount = 0;
+        foreach (Section section in document.Sections)
+        {
+            foreach (DocumentObject obj in section.Body.ChildObjects)
+            {
+                if (obj is Paragraph para && para.Text.Contains("附页"))
+                {
+                    ApplyTitleFormatToParagraph(para, titleFontName, titleFontSize, titleBold, titleColor, titleAlignment);
+                    if (fuyeWithPageBreak < 2)
+                    {
+                        para.Format.PageBreakBefore = true;
+                        fuyeWithPageBreak++;
+                    }
+                    fuyeCount++;
+                }
+                else if (obj is Table table)
+                {
+                    fuyeCount += ProcessTableFuyeParagraphs(table, titleFontName, titleFontSize,
+                        titleBold, titleColor, titleAlignment, ref fuyeWithPageBreak);
+                }
+            }
+        }
+
+        _logger.LogInformation("共处理 {Count} 个'附页'段落（前 {PageBreak} 个设置分页符）", fuyeCount, fuyeWithPageBreak);
+    }
+
+    private void ApplyTitleFormatToParagraph(Paragraph para, string fontName, float fontSize,
+        bool bold, System.Drawing.Color? color, HorizontalAlignment alignment)
+    {
+        para.Format.HorizontalAlignment = alignment;
+        foreach (DocumentObject child in para.ChildObjects)
+        {
+            if (child is TextRange tr)
+            {
+                tr.CharacterFormat.FontName = fontName;
+                tr.CharacterFormat.FontSize = fontSize;
+                tr.CharacterFormat.Bold = bold;
+                if (color.HasValue)
+                {
+                    tr.CharacterFormat.TextColor = color.Value;
+                }
+            }
+        }
+    }
+
+    private int ProcessTableFuyeParagraphs(Table table, string fontName, float fontSize,
+        bool bold, System.Drawing.Color? color, HorizontalAlignment alignment, ref int fuyeWithPageBreak)
+    {
+        int count = 0;
+        foreach (TableRow row in table.Rows)
+        {
+            foreach (TableCell cell in row.Cells)
+            {
+                foreach (DocumentObject cellObj in cell.ChildObjects)
+                {
+                    if (cellObj is Paragraph para && para.Text.Contains("附页"))
+                    {
+                        ApplyTitleFormatToParagraph(para, fontName, fontSize, bold, color, alignment);
+                        if (fuyeWithPageBreak < 2)
+                        {
+                            para.Format.PageBreakBefore = true;
+                            fuyeWithPageBreak++;
+                        }
+                        count++;
+                    }
+                }
+            }
+        }
+        return count;
+    }
 }
