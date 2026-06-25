@@ -791,7 +791,32 @@ public class WordService : IWordService
             }
         }
 
-        // 4. 统一处理所有"附页"段落：设置分页符 + 统一标题格式
+        // 4. 清空"检测人员"右侧单元格的图片
+        foreach (Section section in document.Sections)
+        {
+            foreach (DocumentObject obj in section.Body.ChildObjects)
+            {
+                if (obj is Table table)
+                {
+                    foreach (TableRow row in table.Rows)
+                    {
+                        for (int i = 0; i < row.Cells.Count; i++)
+                        {
+                            string cellText = GetCellText(row.Cells[i]);
+                            if (cellText.Contains("检测人员") && i + 1 < row.Cells.Count)
+                            {
+                                var rightCell = row.Cells[i + 1];
+                                rightCell.Paragraphs.Clear();
+                                rightCell.AddParagraph();
+                                _logger.LogInformation("已清空检测人员右侧单元格的内容（图片）");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. 统一处理所有"附页"段落：设置分页符 + 统一标题格式
         ApplyFormatToAllFuyeParagraphs(document);
 
         document.SaveToFile(recordPath);
