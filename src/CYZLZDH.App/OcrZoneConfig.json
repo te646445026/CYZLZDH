@@ -1,0 +1,148 @@
+{
+  "imageWidth": 800,
+  "imageHeight": 1100,
+  "fields": [
+    {
+      "field": "ReportNum",
+      "label": "报告编号",
+      "zones": [
+        { "x1": 550, "y1": 152, "x2": 760, "y2": 180 }
+      ],
+      "postProcess": "removePrefix",
+      "removePrefix": "编号:"
+    },
+    {
+      "field": "UserName",
+      "label": "使用单位名称",
+      "zones": [
+        { "x1": 176, "y1": 180, "x2": 760, "y2": 210 }
+      ],
+      "postProcess": "trim"
+    },
+    {
+      "field": "JianyanOrjiance",
+      "label": "设备类别",
+      "zones": [
+        { "x1": 565, "y1": 222, "x2": 760, "y2": 250 }
+      ],
+      "postProcess": "trim"
+    },
+    {
+      "field": "UsingAddress",
+      "label": "安装地点",
+      "zones": [
+        { "x1": 176, "y1": 260, "x2": 760, "y2": 290 }
+      ],
+      "postProcess": "trim"
+    },
+    {
+      "field": "DeviceType",
+      "label": "设备品种",
+      "zones": [
+        { "x1": 176, "y1": 304, "x2": 460, "y2": 332 }
+      ],
+      "postProcess": "trim"
+    },
+    {
+      "field": "Model",
+      "label": "产品型号",
+      "zones": [
+        { "x1": 530, "y1": 304, "x2": 760, "y2": 332 }
+      ],
+      "postProcess": "trim"
+    },
+    {
+      "field": "SerialNum",
+      "label": "产品编号",
+      "zones": [
+        { "x1": 176, "y1": 350, "x2": 300, "y2": 378 }
+      ],
+      "postProcess": "trim"
+    },
+    {
+      "field": "ManufacturingDate",
+      "label": "制造日期",
+      "zones": [
+        { "x1": 535, "y1": 350, "x2": 760, "y2": 378 }
+      ],
+      "postProcess": "trim"
+    },
+    {
+      "field": "DeviceCode",
+      "label": "设备代码",
+      "zones": [
+        { "x1": 170, "y1": 388, "x2": 300, "y2": 415 }
+      ],
+      "postProcess": "trim"
+    },
+    {
+      "field": "ConstructionUnit",
+      "label": "施工单位名称",
+      "zones": [
+        { "x1": 176, "y1": 470, "x2": 600, "y2": 500 }
+      ],
+      "postProcess": "trim"
+    },
+    {
+      "field": "ManufacturingUnit",
+      "label": "制造单位名称",
+      "zones": [
+        { "x1": 176, "y1": 511, "x2": 600, "y2": 540 }
+      ],
+      "postProcess": "trim"
+    },
+    {
+      "field": "MaintenanceUnit",
+      "label": "维护保养单位名称",
+      "zones": [
+        { "x1": 176, "y1": 553, "x2": 760, "y2": 585 }
+      ],
+      "postProcess": "trim"
+    },
+    {
+      "field": "RatedLoad",
+      "label": "额定载重量",
+      "zones": [
+        { "x1": 200, "y1": 595, "x2": 250, "y2": 615 },
+        { "x1": 395, "y1": 605, "x2": 425, "y2": 620 }
+      ],
+      "postProcess": "extractNumberWithUnit"
+    },
+    {
+      "field": "Speed",
+      "label": "额定速度",
+      "zones": [
+        { "x1": 540, "y1": 595, "x2": 590, "y2": 615 },
+        { "x1": 715, "y1": 605, "x2": 745, "y2": 620 }
+      ],
+      "postProcess": "extractNumberWithUnit"
+    },
+    {
+      "field": "LayerStationDoor",
+      "label": "层站门数",
+      "zones": [
+        { "x1": 215, "y1": 635, "x2": 245, "y2": 660 },
+        { "x1": 290, "y1": 635, "x2": 320, "y2": 660 },
+        { "x1": 375, "y1": 635, "x2": 410, "y2": 660 }
+      ],
+      "postProcess": "combineSlash"
+    },
+    {
+      "field": "ControlMethod",
+      "label": "控制方式",
+      "zones": [
+        { "x1": 540, "y1": 635, "x2": 620, "y2": 660 }
+      ],
+      "postProcess": "trim"
+    },
+    {
+      "field": "Date",
+      "label": "检验日期",
+      "zones": [
+        { "x1": 130, "y1": 945, "x2": 250, "y2": 970 },
+        { "x1": 270, "y1": 940, "x2": 400, "y2": 970 }
+      ],
+      "postProcess": "trim"
+    }
+  ]
+}
