@@ -188,7 +188,10 @@ public class ZoneOcrService : IOcrService
     {
         var contentType = "application/json; charset=utf-8";
         var timestamp = ((int)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds).ToString();
-        var jsonBody = "{\"ImageBase64\":\"" + imageBase64 + "\"}";
+        // 启用 EnableDetectSplit 提升"小字符占比面积小"场景的识别率（电梯报告层站门数等小数字常被漏检）。
+        // 启用 IsWords 让 OCR 同时返回字符级坐标，便于后续按字符匹配（如层站门数三格数字偶尔整行漏检时，可回退到字符级匹配）。
+        var jsonBody = "{\"ImageBase64\":\"" + imageBase64
+            + "\",\"EnableDetectSplit\":true,\"IsWords\":true,\"ConfigID\":\"OCR\"}";
         var auth = GetAuth(_secretId, _secretKey, Host, contentType, timestamp, jsonBody);
 
         var request = new HttpRequestMessage();
