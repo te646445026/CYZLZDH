@@ -10,6 +10,9 @@ bld/
 [Oo]bj/
 [Oo]ut/
 
+# Agent memory
+.workbuddy/
+
 # Visual Studio
 .vs/
 *.suo
